@@ -1,10 +1,11 @@
 {
     "Parameters": {
       "scale": 2,
-      "metric": "number_of_fibers",
+      "metric": "normalized_fiber_density",
       "data_dir": "/media/localadmin/My Passport/PROJECT_CONNECTOME_EPILEPSY/cmp_harmonization_merged",
       "info_path": "./demographic/info_dsi_multishell_merged_csv.csv",
       "output_dir": ".",
+      "mat_dir": "./matrices",
       "load_dataset": true,
       "filters": ["age", "gender", "group"],
       "age": [0,100],

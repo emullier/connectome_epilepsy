@@ -68,3 +68,8 @@ def save_consensus(MatMat, metric, G_dist, G_unif, out_dir, processings):
         sio.savemat('%s.mat'%dist_bin_path, {'SC_cons': G_dist[proc]}); sio.savemat('%s.mat'%dist_wei_path, {'SC_cons':G_dist[proc]*np.mean(MatMat[proc], axis=2)})
         sio.savemat('%s.mat'%unif_bin_path, {'SC_cons':G_unif[proc]}); sio.savemat('%s.mat'%unif_wei_path, {'SC_cons':G_unif[proc]*np.mean(MatMat[proc], axis=2)})
 
+def save_matrices(MatMat, metric, out_dir, processings):
+    for p,proc in enumerate(processings):
+        mat_path = os.path.join(out_dir, 'MatMat_%dsubs_%s_%s'%(np.shape(MatMat[proc])[2], proc, metric))
+        np.save('%s.npy'% mat_path, MatMat[proc]); 
+        sio.savemat('%s.mat'%mat_path, {'SC': MatMat[proc]}); 

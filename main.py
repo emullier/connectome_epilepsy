@@ -62,6 +62,10 @@ if config['Parameters']['load_dataset']:
 
     MatConc, EucConc, df_conc = utils.concatenate_processings(MatMat, EucMat, dict_df, config)
     print(df_conc['proc'])
+
+    reading.save_matrices(MatMat,  config['Parameters']['metric'], config['Parameters']['mat_dir'], config["Parameters"]["processing"])
+    
+
     
     print("\n")
     print('""""')
