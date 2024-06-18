@@ -1,0 +1,28 @@
+{
+    "Parameters": {
+      "scale": 2,
+      "metric": "number_of_fibers",
+      "data_dir": "/media/localadmin/My Passport/PROJECT_CONNECTOME_EPILEPSY/cmp_harmonization_merged",
+      "info_path": "./demographic/info_dsi_multishell_merged_csv.csv",
+      "output_dir": ".",
+      "load_dataset": true,
+      "filters": ["age", "gender", "group"],
+      "age": [0,100],
+      "gender": ["M", "F"],
+      "group": [ "HC","EP"],  
+      "processing": {"L2008_DSI": "cmp-3.0-RC4_L2008_DSI", "L2008_multish": "cmp-3.0-RC4_L2008_multishell"}
+    },
+
+    "BIAS": {
+      "perform_analysis": true,
+      "DimReduc": "PCA",
+      "colors_key": ["age", "gender", "dwi", "group"] 
+    },
+
+    "CONSENSUS": {
+      "perform_analysis": true,
+      "nbins": 40,
+      "out_dir": "./consensus"
+    }
+  }
+  

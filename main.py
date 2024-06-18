@@ -11,7 +11,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 matplotlib.use('TkAgg')
 
-config_path = 'config.json'
+config_path = 'config_PEP3.json'
 config = reading.check_config_file(config_path)
 
 
@@ -82,8 +82,7 @@ if config['Parameters']['load_dataset']:
         # EucDist, cort_rois, hemii = ML.ROIs_euclidean_distance(config["Parameters"]["scale"])
         # G_dist, G_unif = ML.consensus(MatMat, config["Parameters"]["processing"], cort_rois, dict_df, EucDist, hemii, config["CONSENSUS"]["nbins"])
         G_dist, G_unif = ML.consensus(MatMat, config["Parameters"]["processing"],  dict_df, EucMat, config["CONSENSUS"]["nbins"])
-   
-        
+        reading.save_consensus(MatMat, config["Parameters"]["metric"], G_dist, G_unif, config["CONSENSUS"]["out_dir"], config["Parameters"]["processing"])
         
         
         
