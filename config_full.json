@@ -10,7 +10,7 @@
       "age": [0,100],
       "gender": ["M", "F"],
       "group": [ "HC","EP"],  
-      "processing": {"shore":"cmp-3.1.0_shore", "multitissue":"cmp-3.1.0_multitissue", "L2008": "cmp-3.0-RC4_L2008", "bmax5000":"cmp-3.1.0_bmax5000dsi",  "multishellShore_DSIbmax5000":"cmp3.1.0_multishellShore_dsibmax5000"}
+      "processing": {"shore":"cmp-3.1.0_shore", "multitissue":"cmp-3.1.0_multitissue", "L2008_DSI": "cmp-3.0-RC4_L2008_DSI", "L2008_multish": "cmp-3.0-RC4_L2008_multishell", "bmax5000":"cmp-3.1.0_bmax5000dsi"}
     },
 
     "BIAS": {

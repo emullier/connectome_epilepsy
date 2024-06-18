@@ -57,3 +57,14 @@ def filtered_dataframe(dataframe_orig, filters, config):
     ls_subs = dataframe['sub']
     return dataframe, ls_subs
             
+def save_consensus(MatMat, metric, G_dist, G_unif, out_dir, processings):
+    for p,proc in enumerate(processings):
+        dist_bin_path = os.path.join(out_dir, 'Consensus_binary_%dsubs_%s_dist'%(np.shape(MatMat[proc])[2], proc))
+        unif_bin_path = os.path.join(out_dir, 'Consensus_binary_%dsubs_%s_unif'%(np.shape(MatMat[proc])[2], proc))
+        dist_wei_path = os.path.join(out_dir, 'Consensus_W%s_%dsubs_%s_dist'%(metric, np.shape(MatMat[proc])[2], proc))
+        unif_wei_path = os.path.join(out_dir, 'Consensus_W%s_%dsubs_%s_unif'%(metric, np.shape(MatMat[proc])[2], proc))
+        np.save('%s.npy'%dist_bin_path, G_dist[proc]); np.save('%s.npy'%dist_wei_path, G_dist[proc]*np.mean(MatMat[proc], axis=2))
+        np.save('%s.npy'%unif_bin_path, G_unif[proc]); np.save('%s.npy'%unif_wei_path, G_unif[proc]*np.mean(MatMat[proc], axis=2))
+        sio.savemat('%s.mat'%dist_bin_path, {'SC_cons': G_dist[proc]}); sio.savemat('%s.mat'%dist_wei_path, {'SC_cons':G_dist[proc]*np.mean(MatMat[proc], axis=2)})
+        sio.savemat('%s.mat'%unif_bin_path, {'SC_cons':G_unif[proc]}); sio.savemat('%s.mat'%unif_wei_path, {'SC_cons':G_unif[proc]*np.mean(MatMat[proc], axis=2)})
+

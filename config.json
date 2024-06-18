@@ -4,7 +4,7 @@
       "metric": "normalized_fiber_density",
       "data_dir": "E:\\PROJECT_CONNECTOME_EPILEPSY\\cmp_harmonization_merged",
       "info_path": "C:\\Users\\emeli\\Documents\\CHUV\\TEST_RETEST_DSI_microstructure\\DEMOGRAPHIC\\info_dsi_multishell_merged_csv.csv",
-      "output_dir": "C:\\Users\\emeli\\Desktop",
+      "output_dir": ".",
       "load_dataset": true,
       "filters": ["age", "gender", "group"],
       "age": [0,100],
