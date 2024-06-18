@@ -1,0 +1,22 @@
+{
+    "Parameters": {
+      "scale": 2,
+      "metric": "normalized_fiber_density",
+      "data_dir": "E:\\PROJECT_CONNECTOME_EPILEPSY\\cmp_harmonization_merged",
+      "info_path": "C:\\Users\\emeli\\Documents\\CHUV\\TEST_RETEST_DSI_microstructure\\DEMOGRAPHIC\\info_dsi_multishell_merged.csv",
+      "output_dir": "C:\\Users\\emeli\\Desktop",
+      "load_dataset": true,
+      "filters": ["age", "gender", "group"],
+      "age": [0,100],
+      "gender": ["M", "F"],
+      "group": [ "HC","EP"],  
+      "processing": {"shore":"cmp-3.1.0_shore", "multitissue":"cmp-3.1.0_multitissue", "L2008": "cmp-3.0-RC4_L2008", "bmax5000":"cmp-3.1.0_bmax5000dsi",  "multishellShore_DSIbmax5000":"cmp3.1.0_multishellShore_dsibmax5000"}
+    },
+
+    "BIAS": {
+      "perform_analysis": "True",
+      "DimReduc": "PCA",
+      "colors_key": ["age", "gender", "dwi", "group"] 
+    }
+  }
+  
