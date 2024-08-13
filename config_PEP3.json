@@ -10,19 +10,31 @@
       "age": [0,100],
       "gender": ["M", "F"],
       "group": [ "HC","EP"],  
-      "processing": {"L2008_DSI": "cmp-3.0-RC4_L2008_DSI", "L2008_multish": "cmp-3.0-RC4_L2008_multishell"}
-    },
+      "processing": {
+        "example": "Individual_connectomes", "example": "Individual_connectomes"
 
+      }
+    },
     "BIAS": {
       "perform_analysis": true,
       "DimReduc": "PCA",
-      "colors_key": ["age", "gender", "dwi", "group"] 
+      "colors_key": [
+        "age",
+        "gender",
+        "dwi",
+        "group"
+      ]
     },
-
     "CONSENSUS": {
-      "perform_analysis": true,
-      "nbins": 40,
-      "out_dir": "./consensus"
+      "perform_analysis": false,
+      "nbins": 40
+    },
+    "HARMONICS": {
+      "generate_harmonics": false,
+      "compare_harmonics": false,
+      "consensus": false
+    },
+    "INDvsCONS": {
+      "perform_analysis": true
     }
   }
-  

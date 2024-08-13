@@ -14,14 +14,13 @@ from lib.func_plot import plot_rois
 import lib.func_metaanalysis as MA
 matplotlib.use('TkAgg')
 
-#config_path = 'config.json'
-#config = reading.check_config_file(config_path)
 
 
 def run_processing(config):
 
     ''' DATA LOADING'''
     if config['Parameters']['load_dataset']:
+        print(config['Parameters']['output_dir'])
         ### Create the log file
         logging.basicConfig(
             filename='%s/log_file.log'% config['Parameters']['output_dir'],  # Name of the log file
@@ -46,11 +45,14 @@ def run_processing(config):
         ### Load the matrices
         MatMat = {}; EucMat = {}; dict_df = {}
         for p,proc in enumerate(config["Parameters"]["processing"]):
-            idxs_tmp = np.where(df[proc]=='1')[0]
+            idxs_tmp = np.where((df[proc]==1)|(df[proc]=='1'))[0]
             df_tmp = df.iloc[idxs_tmp]
             print("Number of subjects with processing %s: %d" %(proc,len(idxs_tmp)))
             tmp_path = os.path.join(config["Parameters"]["data_dir"], config["Parameters"]["processing"][proc])
-            MatMat[proc], EucMat[proc] = reading.load_matrices(df_tmp, tmp_path, config['Parameters']['scale'], config['Parameters']['metric'])
+            MatMat[proc], EucMat[proc], df_info = reading.load_matrices(df_tmp, tmp_path, config['Parameters']['scale'], config['Parameters']['metric'])
+            if proc=='example':
+                new_subs = ['sub-IC' + str(i) for i in range(1, 71)]
+                df_tmp = pd.DataFrame({'sub': new_subs, 'dwi':'dsi','age': 40, 'group':'HC', 'gender': 'M', 'Inclusion':1, 'example':1})
             dict_df[proc] = df_tmp 
         MatConc, EucConc, df_conc = utils.concatenate_processings(MatMat, EucMat, dict_df, config)
         logging.info("\n"); logging.info('""""')
@@ -72,10 +74,11 @@ def run_processing(config):
             # EucDist, cort_rois, hemii = ML.ROIs_euclidean_distance(config["Parameters"]["scale"])
             G_dist, G_unif = ML.consensus(MatMat, config["Parameters"]["processing"],  dict_df, EucMat, config["CONSENSUS"]["nbins"])
             G_dist_wei, G_unif_wei = reading.save_consensus(MatMat, config["Parameters"]["metric"], G_dist, G_unif, config["Parameters"]["output_dir"], config["Parameters"]["processing"])
-            ML.compare_matrices(G_dist_wei[procs[0]], G_dist_wei[procs[1]], dict_df[procs[0]], dict_df[procs[1]], procs[0], procs[1], plot=True)
-            MatDist_normError_inter, MatDist_corr_inter = ML.compare_matrices(MatMat[procs[0]], MatMat[procs[1]], dict_df[procs[0]], dict_df[procs[1]], procs[0], procs[1], plot=True)
-            MatDist_normError_intra, MatDist_corr_intra = ML.compare_matrices(MatMat[procs[0]], MatMat[procs[0]], dict_df[procs[0]], dict_df[procs[0]], procs[0], procs[0], plot=True)
-            ML.inter_vs_intra_compare_matrices(MatMat, dict_df, procs)
+            #if len(procs)>1:
+            #    ML.compare_matrices(G_dist_wei[procs[0]], G_dist_wei[procs[1]], dict_df[procs[0]], dict_df[procs[1]], procs[0], procs[1], plot=True)
+            #    MatDist_normError_inter, MatDist_corr_inter = ML.compare_matrices(MatMat[procs[0]], MatMat[procs[1]], dict_df[procs[0]], dict_df[procs[1]], procs[0], procs[1], plot=True)
+            #    MatDist_normError_intra, MatDist_corr_intra = ML.compare_matrices(MatMat[procs[0]], MatMat[procs[0]], dict_df[procs[0]], dict_df[procs[0]], procs[0], procs[0], plot=True)
+            #    ML.inter_vs_intra_compare_matrices(MatMat, dict_df, procs)
             logging.info("\n"); logging.info('""""')
         
         if config['HARMONICS']['generate_harmonics']:
@@ -110,22 +113,23 @@ def run_processing(config):
             procs = list(config["Parameters"]["processing"].keys())
             ConsConc = reading.reading_consensus(procs, config["Parameters"]["metric"], config["Parameters"]["output_dir"], dict_df)
             #ML.compare_matrices(ConsConc[:,:,0], ConsConc[:,:,1], dict_df[procs[0]], dict_df[procs[1]], procs[0], procs[1], plot=True)
-            df_cons = pd.DataFrame([df_conc.iloc[0], df_conc.iloc[-1]])
-            P_ind, Q_ind, Ln_ind, An_ind = ML.ind_normalized_lap(ConsConc, EucConc, df_cons, plot=True)   
-            Q_all_rotated, P_all_rotated, R_all, scale_R = ML.rotation_procrustes(Q_ind, P_ind, plot=True)
-            Mat_recon = ML.reconstruct_SC(An_ind, df_cons, P_ind, Q_ind, plot=True)
+            ### PROBLEM HERE BETWEEN THE IND CONS FOR CONSENSUS LOADING FOR PROCESSING EXAMPLE
+            #df_cons = pd.DataFrame([df_conc.iloc[0], df_conc.iloc[-1]])
+            #P_ind, Q_ind, Ln_ind, An_ind = ML.ind_normalized_lap(ConsConc, EucConc, df_cons, plot=True)   
+            #Q_all_rotated, P_all_rotated, R_all, scale_R = ML.rotation_procrustes(Q_ind, P_ind, plot=True)
+            #Mat_recon = ML.reconstruct_SC(An_ind, df_cons, P_ind, Q_ind, plot=True)
             #for c in np.arange(len(procs)):
             #    for i in np.arange(3):
             #        print('sub %d eigenv %d'%(c,i))
             #        save_fname = plot_rois(Q_ind[:,i,c], config["Parameters"]["scale"], config, vmin=-.15, vmax=.15, label='cons%d_eigv%d'%(c,i))
             #        save_fname = plot_rois(Q_all_rotated[:,i,c], config["Parameters"]["scale"], config, vmin=-.15, vmax=.15, label='cons%d_rotated_eigv%d'%(c,i))
-            MNI_parcellation = r"C:\\Users\\emeli\\Documents\\CHUV\\TEST_RETEST_DSI_microstructure\\connectome_epilepsy\\data\\lausanne2018.ctx+subc.scale2.maxprob_2x2x2.nii.gz"
-            output_path = r"C:\\Users\\emeli\\Documents\\CHUV\\TEST_RETEST_DSI_microstructure\\connectome_epilepsy\\output\\maps"
+            MNI_parcellation = os.path.join(os.getcwd(), 'data/lausanne2018.ctx+subc.scale2.maxprob_2x2x2.nii.gz')
+            output_path = os.path.join(os.getcwd(), 'output/maps')
             EucDist, cort_rois, hemii = ML.ROIs_euclidean_distance(config["Parameters"]["scale"])
             ### next step takes time
             #MA.create_nii_activation_maps(Q_ind, MNI_parcellation , cort_rois + 1, output_path)
             #MA.binarize_map(output_path, 0.01)
-            neurosynth = r"C:\\Users\\emeli\\Documents\\CHUV\\TEST_RETEST_DSI_microstructure\\connectome_epilepsy\\data\\neurosynth_maps"
+            neurosynth = os.path.join(os.getcwd(), 'data/neurosynth_maps') 
             #MA.binarize_map(neurosynth, 0.01)
             ### Need here to correct for different sizes of nifti file 
             ### Careful: Takes time
@@ -139,29 +143,28 @@ def run_processing(config):
             RandCons, df_random, ShuffIdxs = ML.generate_randomized_part_consensus(MatConc, nbPerm, EucDist, ls_bins)
             ### Before rotation
             eigenvalues_perm, eigenvalues_perm_mat, eigenvectors_perm, eigenvectors_perm_mat, labels_perm = ML.harmonics_randomized_part_consensus(MatConc, RandCons, nbPerm, EucDist, df_random, ls_bins)
-            bin_variability = ML.plot_randomized_part_consensus(MatConc, eigenvectors_perm, nbPerm, labels_perm, ls_bins)
+            bin_variability = ML.plot_randomized_part_consensus(MatConc, eigenvectors_perm, nbPerm, labels_perm, ls_bins,plot=True, title='Concatenated')
             ### After Procrustes Rotation
-            Q_all_rotated, P_all_rotated, R_all, scale_R = ML.rotation_procrustes(eigenvectors_perm, eigenvalues_perm, plot=True)
-            bin_variability_rotated = ML.plot_randomized_part_consensus(MatConc, Q_all_rotated, nbPerm, labels_perm, ls_bins, plot=True, title='Concatenated')
+            Q_all_rotated, P_all_rotated, R_all, scale_R = ML.rotation_procrustes(eigenvectors_perm, eigenvalues_perm, plot=False)
+            bin_variability_rotated = ML.plot_randomized_part_consensus(MatConc, Q_all_rotated, nbPerm, labels_perm, ls_bins, plot=False, title='Concatenated')
             
             ### Not concatenanted matrices
-            procs = list(config["Parameters"]["processing"].keys())
-            print(procs)
-            RandCons_p = {}; df_random_p = {}; eigenvectors_perm_p = {}; eigenvalues_perm_p = {}; Q_all_rotated_p = {}; bin_variability_p={}; bin_variability_rotated_p = {}
-            for p,proc in enumerate(procs):
-                print(proc)
-                RandCons_p[proc], df_random_p[proc], ShuffIdxs = ML.generate_randomized_part_consensus(MatMat[proc], nbPerm, EucDist, ls_bins)
-                eigenvalues_perm_p[proc], eigenvalues_perm_mat, eigenvectors_perm_p[proc], eigenvectors_perm_mat, labels_perm = ML.harmonics_randomized_part_consensus(MatMat[proc], RandCons_p[proc], nbPerm, EucDist, df_random_p[proc], ls_bins)
-                bin_variability_p[proc] = ML.plot_randomized_part_consensus(MatMat[proc], eigenvectors_perm_p[proc], nbPerm, labels_perm, ls_bins, plot=True, title='%s'%proc)
-                Q_all_rotated_p[proc], P_all_rotated, R_all, scale_R = ML.rotation_procrustes(eigenvectors_perm_p[proc], eigenvalues_perm_p[proc], plot=True)
-                bin_variability_rotated_p[proc] = ML.plot_randomized_part_consensus(MatMat[proc], Q_all_rotated_p[proc], nbPerm, labels_perm, ls_bins, plot=True, title='%s'%proc)
+            #procs = list(config["Parameters"]["processing"].keys())
+            #print(procs)
+            #RandCons_p = {}; df_random_p = {}; eigenvectors_perm_p = {}; eigenvalues_perm_p = {}; Q_all_rotated_p = {}; bin_variability_p={}; bin_variability_rotated_p = {}
+            #for p,proc in enumerate(procs):
+            #    RandCons_p[proc], df_random_p[proc], ShuffIdxs = ML.generate_randomized_part_consensus(MatMat[proc], nbPerm, EucDist, ls_bins)
+            #    eigenvalues_perm_p[proc], eigenvalues_perm_mat, eigenvectors_perm_p[proc], eigenvectors_perm_mat, labels_perm = ML.harmonics_randomized_part_consensus(MatMat[proc], RandCons_p[proc], nbPerm, EucDist, df_random_p[proc], ls_bins)
+            #    bin_variability_p[proc] = ML.plot_randomized_part_consensus(MatMat[proc], eigenvectors_perm_p[proc], nbPerm, labels_perm, ls_bins, plot=True, title='%s'%proc)
+            #    Q_all_rotated_p[proc], P_all_rotated, R_all, scale_R = ML.rotation_procrustes(eigenvectors_perm_p[proc], eigenvalues_perm_p[proc], plot=False)
+            #    bin_variability_rotated_p[proc] = ML.plot_randomized_part_consensus(MatMat[proc], Q_all_rotated_p[proc], nbPerm, labels_perm, ls_bins, plot=False, title='%s'%proc)
 
         plt.show(block=True)
 
 
 if __name__ == "__main__":
     # Load the default configuration from the file
-    config_path = 'config.json'
+    config_path = 'config_PEP3.json'
     config_defaults = reading.check_config_file(config_path)
     
     #root = tk.Tk()

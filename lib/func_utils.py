@@ -47,7 +47,7 @@ def compare_large_rotations(R_all):
     return diff_norm
 
 def compare_harmonicwise_rotations(R_all):
-    # Compute the Frobenius norm of the difference
+    # Compute the Frobenius norfim of the difference
     diff_norm = np.zeros((np.shape(R_all)[1],np.shape(R_all)[2]))
     for s in np.arange(np.shape(R_all)[1]):
         mean_rotation = np.mean(R_all[:,s,:], axis=1) 
