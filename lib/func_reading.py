@@ -45,6 +45,18 @@ def load_matrices(df_info, data_dir, scale, metric):
             z = np.asarray(roi_info['z-pos'])[cort_rois]
             coordMat = np.concatenate((x[:,None],y[:,None],z[:,None]),1)
             Euc = scipy.spatial.distance.squareform(scipy.spatial.distance.pdist(coordMat, metric='euclidean'))  
+        elif 'Individual_Connectomes' in sub:
+            SC = sio.loadmat('./data/Individual_Connectomes.mat')
+            SC = SC['connMatrices']['SC'][0][0][scale-1][0]
+            roi_info_path = 'data/label/roi_info.xlsx'
+            roi_info = pd.read_excel(roi_info_path, sheet_name=f'SCALE 2')
+            cort_rois = np.where(roi_info['Structure'] == 'cort')[0]
+            matMetric = SC
+            x = np.asarray(roi_info['x-pos'])[cort_rois]
+            y = np.asarray(roi_info['y-pos'])[cort_rois]
+            z = np.asarray(roi_info['z-pos'])[cort_rois]
+            coordMat = np.concatenate((x[:,None],y[:,None],z[:,None]),1)
+            Euc = scipy.spatial.distance.squareform(scipy.spatial.distance.pdist(coordMat, metric='euclidean'))  
         elif 'L2008' in data_dir:
             mat = sio.loadmat(mat_path)
             matMetric = mat['sc'][metric][0][0]
@@ -58,16 +70,21 @@ def load_matrices(df_info, data_dir, scale, metric):
             Euc = mat['nodes']['dn_position'][0][0]
             matMetric = matMetric[cort_rois,:]; matMetric = matMetric[:, cort_rois]
             Euc = Euc[cort_rois,:]; 
-        nROIs = len(matMetric)
-        if k==0:
-            MatMat = np.zeros((len(matMetric), len(matMetric),len(df_info['sub'])))
-            EucMat = np.zeros((len(matMetric), len(matMetric) ,len(df_info['sub'])))
-            MatMat[:,:,k] = matMetric; EucMat[:,:,k] = scipy.spatial.distance.squareform(scipy.spatial.distance.pdist(Euc, metric='euclidean'))
-            k=k+1
+        nROIs = np.shape(matMetric)[0]
+        shape = np.shape(matMetric) 
+        if len(shape)>2:
+            MatMat = matMetric
+            EucMat = np.repeat(Euc[:, :, np.newaxis], np.shape(MatMat)[2], axis=2)
         else:
-            MatMat[:,:,k] = matMetric; EucMat[:,:,k] = scipy.spatial.distance.squareform(scipy.spatial.distance.pdist(Euc, metric='euclidean'))
-            k=k+1
-    return MatMat, EucMat
+            if k==0:
+                MatMat = np.zeros((len(matMetric), len(matMetric),len(df_info['sub'])))
+                EucMat = np.zeros((len(matMetric), len(matMetric) ,len(df_info['sub'])))
+                MatMat[:,:,k] = matMetric; EucMat[:,:,k] = scipy.spatial.distance.squareform(scipy.spatial.distance.pdist(Euc, metric='euclidean'))
+                k=k+1
+            else:
+                MatMat[:,:,k] = matMetric; EucMat[:,:,k] = scipy.spatial.distance.squareform(scipy.spatial.distance.pdist(Euc, metric='euclidean'))
+                k=k+1
+    return MatMat, EucMat, df_info
 
 
 

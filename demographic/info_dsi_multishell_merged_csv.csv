@@ -1,0 +1,79 @@
+,sub,dwi,Birthdate,Scandate,age,gender,group,Lateralization,Comment_diag,Inclusion,anat,dwi,EPILEPSY_DATASET,freesurfer,shore,shore_nip,multitissue,multi_nip,L2008_DSI,L2008_DSI_nip,L2008_multish,L2008_multish_nip,orig,example,bmax5000,bmax_nip,Comment,dataset
+0,sub-20200211,multishell,,,23,F,HC,,,1,1,1,,,tbc,,failed,,na,,tbc,,,,na,,not existing,Data_jon
+1,sub-20200228,multishell,,,32,M,HC,,,1,1,1,,,1,,1,,na,,1,,,,na,,missing mat files,Data_jon
+2,sub-20200304,multishell,,,28,M,HC,,,1,1,1,,,1,,1,,na,,1,,,,na,,,Data_jon
+3,sub-20200305,multishell,,,24,M,HC,,,1,1,1,,,1,,1,,na,,1,,,,na,,,Data_jon
+4,sub-20200311,multishell,,,48,M,HC,,,1,1,1,,,failed,,failed,,na,,failed,,,,na,,anat_valid_outputs,Data_jon
+5,sub-20200625,multishell,,,29,M,HC,,,1,1,1,,,1,,1,,na,,1,,,,na,,,Data_jon
+6,sub-20201014,multishell,,,33,M,HC,,,1,1,1,,,1,,1,,na,,1,,,,na,,,Data_jon
+7,sub-20210312,multishell,,,34,M,HC,,,1,1,1,,,tbc,,failed,,na,,tbc,,,,na,,not existing,Data_jon
+8,sub-20210423,multishell,,,28,F,HC,,,1,1,1,,,1,,1,,na,,1,,,,na,,,Data_jon
+9,sub-20211105,multishell,,,28,F,HC,,,1,1,1,,,1,,1,,na,,1,,,,na,,,Data_jon
+10,sub-20211116,multishell,,,24,F,HC,,,1,1,1,,,1,,1,,na,,1,,,,na,,,Data_jon
+11,sub-20211117,multishell,,,24,F,HC,,,1,1,1,,,1,,failed,,na,,1,,,,na,,,Data_jon
+12,sub-20211221,multishell,,,24,F,HC,,,1,1,1,,,1,,1,,na,,1,,,,na,,,Data_jon
+13,sub-20220120,multishell,,,21,F,HC,,,1,1,1,,,1,,1,,na,,1,,,,na,,,Data_jon
+14,sub-20220121,multishell,,,25,M,HC,,,1,1,1,,,1,,tbc,,na,,1,,,,na,,,Data_jon
+15,sub-20220323,multishell,,,38,F,HC,,,1,1,1,,,failed,,1,,na,,failed,,,,na,,anat_valid_outputs,Data_jon
+16,sub-20220614,multishell,,,44,M,HC,,,1,1,1,,,1,,1,,na,,1,,,,na,,,Data_jon
+17,sub-20221129,multishell,,,34,M,HC,,,1,1,1,,,1,,1,,na,,1,,,,na,,no gfa,Data_jon
+18,sub-20221130,multishell,,,23,F,HC,,,1,1,1,,,1,,1,,na,,1,,,,na,,no gfa,Data_jon
+19,sub-00,dsi,17.04.1987,27.04.2011,24,M,EP,RT,11.03.2024 - mass of the image 0 linear registration,1,1,1,1,missing,failed,missing,na,na,1,,na,,,,failed,,composite transform,DIFFUSION_GVA_BIDS
+20,sub-01,dsi,24.08.1986,05.02.2013,26,F,EP,LT,,1,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
+21,sub-02,dsi,12.04.1968,01.10.2012,44,M,EP,LT,,1,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
+22,sub-03,dsi,23.09.1960,11.07.2012,51,F,EP,RT,,1,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
+23,sub-04,dsi,,,,,EP,,,0,1,1,1,missing,1,missing,na,,1,,na,,,,failed,,,DIFFUSION_GVA_BIDS
+24,sub-05,dsi,24.09.1987,03.09.2010,23,M,EP,RT,,1,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
+25,sub-06,dsi,06.11.1998,04.06.2014,22,M,EP,LT,,1,1,1,1,missing,failed,missing,na,,1,,na,,,,1,,no readable log,DIFFUSION_GVA_BIDS
+26,sub-07,dsi,31.07.1961,18.09.2012,51,F,EP,LT,,1,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
+27,sub-08,dsi,,,,,EP,,,0,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
+28,sub-09,dsi,28.11.1975,26.06.2012,36,M,EP,RT,,1,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
+29,sub-10,dsi,16.07.1983,21.08.2013,30,F,EP,RT,,1,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
+30,sub-11,dsi,01.01.1986,04.12.2013,27,M,EP,LT,,1,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
+31,sub-12,dsi,20.04.1971,01.02.2012,40,F,EP,LT,,1,1,1,1,missing,1,missing,na,,failed,,na,,,,1,,,DIFFUSION_GVA_BIDS
+32,sub-13,dsi,02.07.1979,11.11.2011,32,F,EP,RT,,1,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
+33,sub-14,dsi,02.01.1982,06.07.2012,30,F,EP,RT,,1,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
+34,sub-15,dsi,,,,,EP,,,0,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
+35,sub-16,dsi,01.09.1982,03.03.2012,29,F,EP,RT,,1,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
+36,sub-17,dsi,16.05.1985,03.09.2012,27,M,EP,LT,,1,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
+37,sub-18,dsi,,,,,EP,,,0,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
+38,sub-19,dsi,,,,,EP,,,0,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
+39,sub-20,dsi,04.11.1970,13.04.2011,40,M,EP,RT,,1,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
+40,sub-21,dsi,17.06.1995,22.09.2012,17,F,EP,LT,,1,1,1,1,missing,failed,missing,na,,1,,na,,,,1,,reconall,DIFFUSION_GVA_BIDS
+41,sub-22,dsi,13.11.1968,07.06.2011,42,F,EP,RT,,1,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
+42,sub-23,dsi,,,,,EP,,,0,1,1,1,missing,1,missing,na,,failed,,na,,,,1,,,DIFFUSION_GVA_BIDS
+43,sub-24,dsi,,,,,EP,,,0,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
+44,sub-25,dsi,13.02.1974,16.09.2011,37,F,EP,RT,,0,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
+45,sub-26,dsi,27.06.1974,12.05.2011,36,F,EP,RT,,0,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
+46,sub-27,dsi,18.05.1983,15.07.2011,28,M,EP,LT,,1,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
+47,sub-28,dsi,,,,,EP,,,0,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
+48,sub-15513ea82b3b,dsi,,09.07.2010,29,F,HC,,,1,1,1,,,1,,na,,1,,na,,,,1,,,DSI_EEG_HC_BIDS
+49,sub-1abfe5623910,dsi,02.01.1972,08.01.2010,28,M,HC,,,1,1,1,,,failed,,na,,failed,,na,,,,tbc,,bval not found,DSI_EEG_HC_BIDS
+50,sub-244af16bf699,dsi,,27.01.2010,27,F,HC,,,1,1,1,,,1,,na,,1,,na,,,,tbc,,,DSI_EEG_HC_BIDS
+51,sub-298801a7d5f1,dsi,15.03.1967,06.01.2010,43,M,HC,,,1,1,1,,,1,,na,,1,,na,,,,1,,,DSI_EEG_HC_BIDS
+52,sub-2d87b5bd62ef,dsi,13.06.1959,23.03.2010,50,M,HC,,,1,1,1,,,1,,na,,1,,na,,,,1,,,DSI_EEG_HC_BIDS
+53,sub-2e28390dba49,dsi,,25.05.2010,27,M,HC,,,1,1,1,,,1,,na,,1,,na,,,,1,,,DSI_EEG_HC_BIDS
+54,sub-4313b62f8ac2,dsi,11.03.1981,30.09.2009,28,F,HC,,,1,1,1,,,failed,,na,,failed,,na,,,,failed,,anat_valid_outputs,DSI_EEG_HC_BIDS
+55,sub-8600263105cd,dsi,,12.02.2010,36,F,HC,,,1,1,1,,,1,,na,,1,,na,,,,1,,,DSI_EEG_HC_BIDS
+56,sub-b95d3e53a9ce,dsi,07.10.1985,04.03.2011,25,F,HC,,,1,1,1,,,1,,na,,1,,na,,,,1,,,DSI_EEG_HC_BIDS
+57,sub-c505474f8fbc,dsi,18.07.1978,22.02.2013,34,F,HC,,,1,1,1,,,failed,,na,,failed,,na,,,,failed,,dwi2tensor_unmasked,DSI_EEG_HC_BIDS
+58,sub-c61a1850b63f,dsi,,23.02.2010,30,F,HC,,,1,1,1,,,1,,na,,1,,na,,,,1,,,DSI_EEG_HC_BIDS
+59,sub-d0bc6fce879a,dsi,,11.09.2009,32,M,HC,,,1,1,1,,,1,,na,,1,,na,,,,1,,,DSI_EEG_HC_BIDS
+60,sub-e8c7e79c759c,dsi,19.11.1983,,,F,HC,,,0,1,1,,,1,,na,,1,,na,,,,failed,,,DSI_EEG_HC_BIDS
+61,sub-f037ef54a962,dsi,09.01.1970,08.01.2010,40,M,HC,,,1,1,1,,,1,,na,,1,,na,,,,1,,,DSI_EEG_HC_BIDS
+62,sub-ep20220325,multishell,,,26,F,EP,LT,LT,1,,,,,failed,,tbc,,na,,failed,,,,na,,,dwi_tle_multish
+63,sub-epi20170920,multishell,,,61,F,EP,RT,RT,1,,,,,1,,tbc,,na,,1,,,,na,,,dwi_tle_multish
+64,sub-epi20171201,multishell,,,30,M,EP,LT,LT,1,,,,,1,,tbc,,na,,1,,,,na,,,dwi_tle_multish
+65,sub-epi20180116,multishell,,,27,M,EP,RT,RT,1,,,,,failed,,tbc,,na,,failed,,,,na,,,dwi_tle_multish
+66,sub-epi20180518,multishell,,,43,F,EP,RT,RT,1,,,,,failed,,tbc,,na,,1,,,,na,,,dwi_tle_multish
+67,sub-epi20180706,multishell,,,30,F,EP,LT,LT,1,,,,,1,,tbc,,na,,1,,,,na,,,dwi_tle_multish
+68,sub-epi20190130,multishell,,,54,F,EP,LT,LT,1,,,,,failed,,tbc,,na,,failed,,,,na,,,dwi_tle_multish
+69,sub-epi20190219,multishell,,,18,M,EP,LT,LT,1,,,,,1,,tbc,,na,,failed,,,,na,,,dwi_tle_multish
+70,sub-epi20200813,multishell,,,23,F,EP,LT,LT,1,,,,,1,,tbc,,na,,1,,,,na,,,dwi_tle_multish
+71,sub-epi20201016,multishell,,,18,F,EP,LT,LT,1,,,,,1,,tbc,,na,,1,,na,,na,,,dwi_tle_multish
+72,sub-epi20201127,multishell,,,40,F,EP,LT,LT,1,,,,,1,,tbc,,na,,failed,,na,,na,,,dwi_tle_multish
+73,sub-epi20210121,multishell,,,47,F,EP,LT,LT,1,,,,,1,,tbc,,na,,1,,na,,na,,,dwi_tle_multish
+74,sub-epi20210319,multishell,,,33,F,EP,LT,LT,1,,,,,failed,,tbc,,na,,1,,na,,na,,,dwi_tle_multish
+75,sub-epi20220107,multishell,,,23,F,EP,LT,LT,1,,,,,failed,,tbc,,na,,failed,,na,,na,,,dwi_tle_multish
+76,struct_data,dsi,,,40,F,HC,,,1,,,,,,,,,,,,,1,,,,,struct_data
+77,Individual_Connectomes,dsi,,,40,F,HC,,,1,,,,,,,,,,,,,,1,,,,Individual_Connectomes

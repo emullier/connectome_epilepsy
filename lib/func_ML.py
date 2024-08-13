@@ -317,6 +317,7 @@ def ind_normalized_lap(MatMat, EucMat, df, plot=False):
     Ln = np.zeros((np.shape(MatMat)[0], np.shape(MatMat)[0], len(df['sub']))); An = np.zeros((np.shape(MatMat)[0], np.shape(MatMat)[0], len(df['sub'])));
       
     for s,sub in enumerate(list(df['sub'])):
+        print(sub)
         tmp = MatMat[:,:,s]
         diag_zeros = np.diag(np.diag(tmp))
         tmp = tmp - diag_zeros
@@ -351,25 +352,28 @@ def rotation_procrustes(Q_all, P_all,  plot=False, title=''):
             eig_rotated = R@Q_all[:,:,i]@np.diag(P_all[:,i])
             P_all_rotated[:,i] = np.sqrt(np.sum(np.multiply(eig_rotated,eig_rotated),axis=0))
         
-        if plot==True:
-            fig, ax = plt.subplots(1,5, figsize=(20,3))
             Q_mean_rotated = np.mean(Q_all_rotated,axis=2)
+            P_mean = np.mean(P_all,axis=1); P_mean_rotated = np.mean(P_all_rotated, axis=1)
+
+
+        if plot==True:
+            fig, ax = plt.subplots(1,5, figsize=(20,3))            
             ax[0].imshow(Q_mean_rotated,  extent = [0,np.shape(Q_all)[2],0,np.shape(Q_all)[2]], aspect='auto', cmap='jet', vmin = -0.1,vmax=0.1)
             ax[0].set_title('Average of rotated eigenvectors');  ax[0].set_aspect('equal')
             cax1 = ax[1].imshow(np.mean(Q_all, axis=2),  extent = [0,np.shape(Q_all)[2],0,np.shape(Q_all)[2]], aspect='auto', cmap='jet', vmin = -0.1,vmax=0.1)
             ax[1].set_title('Average of original eigenvectors'); ax[1].set_aspect('equal')
-            P_mean = np.mean(P_all,axis=1); P_mean_rotated = np.mean(P_all_rotated, axis=1)
             ax[2].plot(range(np.shape(Q_all)[0]), P_mean, range(np.shape(Q_all)[0]), P_mean_rotated)
             ax[2].set_title('Original and Rotated Eigenvectors '); ax[2].set_xlabel('eigenvalue index'); ax[2].set_ylabel('eigenvalues'); ax[2].legend(['Original Eigenvalues', 'Rotated Eigenvalues'])
 
         A = Q_all[:,:,0].T; B = Q_all[:,:,1].T; A_cos = np.dot(A, B.T)
-        ax[3].imshow(A_cos,cmap = 'seismic',vmin = -1,vmax=1)
-        ax[3].set_title('Cosine Similarity Before Rotation'); ax[3].set_xlabel('Subject 1 eigenvectors'), ax[3].set_ylabel('Subject 2 eigenvectors')
+        if plot==True:
+            ax[3].imshow(A_cos,cmap = 'seismic',vmin = -1,vmax=1)
+            ax[3].set_title('Cosine Similarity Before Rotation'); ax[3].set_xlabel('Subject 1 eigenvectors'), ax[3].set_ylabel('Subject 2 eigenvectors')
         
         A = Q_all_rotated[:,:,0].T; B = Q_all_rotated[:,:,1].T; A_cos = np.dot(A,B.T)
-        ax[4].imshow(A_cos,cmap = 'seismic', vmin = -1,vmax=1); ax[4].set_title('Cosine Similarity After Rotation'); ax[4].set_xlabel('Subject 1 eigenvectors'); ax[4].set_ylabel('Subject 2 eigenvectors')        
-        
-        fig.suptitle('%s'%title); plt.show(block=False)
+        if plot==True:
+            ax[4].imshow(A_cos,cmap = 'seismic', vmin = -1,vmax=1); ax[4].set_title('Cosine Similarity After Rotation'); ax[4].set_xlabel('Subject 1 eigenvectors'); ax[4].set_ylabel('Subject 2 eigenvectors')        
+            fig.suptitle('%s'%title); plt.show(block=False)
         
     return Q_all_rotated, P_all_rotated, R_all, scale_R
 
