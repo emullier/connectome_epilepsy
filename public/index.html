@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configure and Run Script</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #config-form, #script-results {
+            margin-bottom: 20px;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Configure and Run Script</h1>
+
+    <!-- Form to configure the script -->
+    <form id="configForm">
+        <!-- Parameters Section -->
+        <h3>Parameters</h3>
+        <label for="scale">Scale:</label>
+        <input type="number" id="scale" name="scale"><br>
+
+        <label for="metric">Metric:</label>
+        <input type="text" id="metric" name="metric"><br>
+
+        <label for="data_dir">Data Directory:</label>
+        <input type="text" id="data_dir" name="data_dir"><br>
+
+        <label for="info_path">Info Path:</label>
+        <input type="text" id="info_path" name="info_path"><br>
+
+        <label for="output_dir">Output Directory:</label>
+        <input type="text" id="output_dir" name="output_dir"><br>
+
+        <label for="fig_dir">Figures Directory:</label>
+        <input type="text" id="fig_dir" name="fig_dir"><br>
+
+        <label for="load_dataset">Load Dataset:</label>
+        <input type="checkbox" id="load_dataset" name="load_dataset"><br>
+
+        <label for="filters">Filters (comma separated):</label>
+        <input type="text" id="filters" name="filters"><br>
+
+        <label for="age_min">Age Min:</label>
+        <input type="number" id="age_min" name="age_min"><br>
+
+        <label for="age_max">Age Max:</label>
+        <input type="number" id="age_max" name="age_max"><br>
+
+        <label for="gender">Gender (comma separated):</label>
+        <input type="text" id="gender" name="gender"><br>
+
+        <label for="group">Group (comma separated):</label>
+        <input type="text" id="group" name="group"><br>
+
+        <label for="dwi">DWI (comma separated):</label>
+        <input type="text" id="dwi" name="dwi"><br>
+
+        <label for="processing">Processing (comma separated key:value):</label>
+        <input type="text" id="processing" name="processing"><br>
+
+        <!-- Bias Analysis Section -->
+        <h3>Bias Analysis</h3>
+        <label for="perform_bias_analysis">Perform Bias Analysis:</label>
+        <input type="checkbox" id="perform_bias_analysis" name="perform_bias_analysis"><br>
+
+        <label for="DimReduc">Dimensionality Reduction (e.g., PCA):</label>
+        <input type="text" id="DimReduc" name="DimReduc"><br>
+
+        <label for="colors_key">Colors Key (comma separated):</label>
+        <input type="text" id="colors_key" name="colors_key"><br>
+
+        <!-- Consensus Section -->
+        <h3>Consensus Analysis</h3>
+        <label for="perform_consensus_analysis">Perform Consensus Analysis:</label>
+        <input type="checkbox" id="perform_consensus_analysis" name="perform_consensus_analysis"><br>
+
+        <label for="nbins">Number of Bins:</label>
+        <input type="number" id="nbins" name="nbins"><br>
+
+        <!-- Harmonics Section -->
+        <h3>Harmonics Analysis</h3>
+        <label for="generate_harmonics">Generate Harmonics:</label>
+        <input type="checkbox" id="generate_harmonics" name="generate_harmonics"><br>
+
+        <label for="compare_harmonics">Compare Harmonics:</label>
+        <input type="checkbox" id="compare_harmonics" name="compare_harmonics"><br>
+
+        <label for="consensus_harmonics">Consensus:</label>
+        <input type="checkbox" id="consensus_harmonics" name="consensus_harmonics"><br>
+
+        <!-- INDvsCONS Section -->
+        <h3>INDvsCONS Analysis</h3>
+        <label for="perform_indvscons_analysis">Perform IND vs CONS Analysis:</label>
+        <input type="checkbox" id="perform_indvscons_analysis" name="perform_indvscons_analysis"><br>
+
+        <button type="button" onclick="saveConfig()">Save Configuration</button>
+        <button type="button" onclick="runScript()">Run Script</button>
+    </form>
+
+    <div id="script-results">
+        <h2>Script Results</h2>
+        <div id="output"></div>
+        <div id="figure">
+            <h3>Generated Figure:</h3>
+            <img id="plot" src="" alt="Generated Plot" />
+        </div>
+    </div>
+
+    <script>
+        async function fetchConfig() {
+            const response = await fetch('/get-config');
+            const config = await response.json();
+            // Populate form with config values
+            document.getElementById('scale').value = config.Parameters.scale;
+            document.getElementById('metric').value = config.Parameters.metric;
+            document.getElementById('data_dir').value = config.Parameters.data_dir;
+            document.getElementById('info_path').value = config.Parameters.info_path;
+            document.getElementById('output_dir').value = config.Parameters.output_dir;
+            document.getElementById('fig_dir').value = config.Parameters.fig_dir;
+            document.getElementById('load_dataset').checked = config.Parameters.load_dataset;
+            document.getElementById('filters').value = config.Parameters.filters.join(',');
+            document.getElementById('age_min').value = config.Parameters.age_min;
+            document.getElementById('age_max').value = config.Parameters.age_max;
+            document.getElementById('gender').value = config.Parameters.gender.join(',');
+            document.getElementById('group').value = config.Parameters.group.join(',');
+            document.getElementById('dwi').value = config.Parameters.dwi.join(',');
+            document.getElementById('processing').value = Object.entries(config.Parameters.processing).map(([k, v]) => `${k}:${v}`).join(',');
+            document.getElementById('perform_bias_analysis').checked = config.BIAS.perform_analysis;
+            document.getElementById('DimReduc').value = config.BIAS.DimReduc;
+            document.getElementById('colors_key').value = config.BIAS.colors_key.join(',');
+            document.getElementById('perform_consensus_analysis').checked = config.CONSENSUS.perform_analysis;
+            document.getElementById('nbins').value = config.CONSENSUS.nbins;
+            document.getElementById('generate_harmonics').checked = config.HARMONICS.generate_harmonics;
+            document.getElementById('compare_harmonics').checked = config.HARMONICS.compare_harmonics;
+            document.getElementById('consensus_harmonics').checked = config.HARMONICS.consensus;
+            document.getElementById('perform_indvscons_analysis').checked = config.INDvsCONS.perform_analysis;
+        }
+
+        async function saveConfig() {
+            const config = {
+                Parameters: {
+                    scale: parseInt(document.getElementById('scale').value),
+                    metric: document.getElementById('metric').value,
+                    data_dir: document.getElementById('data_dir').value,
+                    info_path: document.getElementById('info_path').value,
+                    output_dir: document.getElementById('output_dir').value,
+                    fig_dir: document.getElementById('fig_dir').value,
+                    load_dataset: document.getElementById('load_dataset').checked,
+                    filters: document.getElementById('filters').value.split(','),
+                    age_min: parseInt(document.getElementById('age_min').value),
+                    age_max: parseInt(document.getElementById('age_max').value),
+                    gender: document.getElementById('gender').value.split(','),
+                    group: document.getElementById('group').value.split(','),
+                    dwi: document.getElementById('dwi').value.split(','),
+                    processing: Object.fromEntries(document.getElementById('processing').value.split(',').map(item => item.split(':')))
+                },
+                BIAS: {
+                    perform_analysis: document.getElementById('perform_bias_analysis').checked,
+                    DimReduc: document.getElementById('DimReduc').value,
+                    colors_key: document.getElementById('colors_key').value.split(',')
+                },
+                CONSENSUS: {
+                    perform_analysis: document.getElementById('perform_consensus_analysis').checked,
+                    nbins: parseInt(document.getElementById('nbins').value)
+                },
+                HARMONICS: {
+                    generate_harmonics: document.getElementById('generate_harmonics').checked,
+                    compare_harmonics: document.getElementById('compare_harmonics').checked,
+                    consensus: document.getElementById('consensus_harmonics').checked
+                },
+                INDvsCONS: {
+                    perform_analysis: document.getElementById('perform_indvscons_analysis').checked
+                }
+            };
+
+            const response = await fetch('/save-config', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(config)
+            });
+
+            if (response.ok) {
+                alert('Configuration saved successfully');
+            } else {
+                alert('Error saving configuration');
+            }
+        }
+
+        async function runScript() {
+            const response = await fetch('/run-script', {
+                method: 'POST'
+            });
+
+            const result = await response.text();
+            document.getElementById('output').innerText = result;
+
+            // Update the image source to display the latest plot
+            document.getElementById('plot').src = 'public/images/BiasPCA.png';
+        }
+
+        // Fetch and populate config on page load
+        window.onload = fetchConfig;
+    </script>
+</body>
+</html>
