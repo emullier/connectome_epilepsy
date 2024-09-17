@@ -122,7 +122,7 @@ def run_analysis(config, MatMat, EucMat, dict_df, comp_parc, nbProcs):
         SDI[proc] = SDI_tmp
 
         ### Surrogate part
-        SDI_surr[proc], XRandS = sdi.surrogate_sdi(Q_ind[proc], Vlow, Vhigh, nbSurr=20, example=False) # Generate the surrogate 
+        SDI_surr[proc] = sdi.surrogate_sdi(Q_ind[proc], Vlow, Vhigh, nbSurr=20, example=True) # Generate the surrogate 
     
         fig,ax = plt.subplots(1,2)
         for l, lat in enumerate(np.unique(ls_lat)):
