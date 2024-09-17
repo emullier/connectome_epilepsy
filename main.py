@@ -103,8 +103,9 @@ def run_analysis(config, MatMat, EucMat, dict_df, comp_parc, nbProcs):
     P_ind={}; Q_ind={}; Ln_ind = {}; An_ind= {}; SDI = {}; SDI_surr = {}
     for p,proc in enumerate(procs):
         
+
         ### Generate the harmonics
-        P_ind[proc], Q_ind[proc], Ln_ind[proc], An_ind[proc] = ML.cons_normalized_lap(G_dist[proc], EucDist[proc], dict_df[proc], plot=True)
+        P_ind[proc], Q_ind[proc], Ln_ind[proc], An_ind[proc] = ML.cons_normalized_lap(G_dist[proc], EucDist[proc], dict_df[proc], plot=False)
         if np.shape(Q_ind[proc])!=114:
             Q_ind[proc] = utils.extract_ctx_ROIs(Q_ind[proc])
                     
@@ -119,17 +120,15 @@ def run_analysis(config, MatMat, EucMat, dict_df, comp_parc, nbProcs):
             SDI_tmp[:,p], X_c_norm, X_d_norm = sdi.compute_SDI(X_RS[idx_ctx,:,:], Q_ind[proc])
         ls_lat = np.array(ls_lat)
         SDI[proc] = SDI_tmp
-        
 
-        
         ### Surrogate part
-        SDI_surr[proc], XRandS = sdi.surrogate_sdi(Q_ind[proc], Vlow, Vhigh, nbSurr=10) # Generate the surrogate 
-        
+        SDI_surr[proc], XRandS = sdi.surrogate_sdi(Q_ind[proc], Vlow, Vhigh, nbSurr=20, example=False) # Generate the surrogate 
     
         fig,ax = plt.subplots(1,2)
         for l, lat in enumerate(np.unique(ls_lat)):
             ### not related here, the functional signales are always the same, they should be loaded all the time the same way
-            surr_thresh = sdi.select_significant_sdi(SDI_tmp[:,np.where(ls_lat==lat)[0]], SDI_surr[proc])
+            SDI_tmp = SDI[proc]; SDI_surr_tmp = SDI_surr[proc]
+            surr_thresh = sdi.select_significant_sdi(SDI_tmp[:,np.where(ls_lat==lat)[0]], SDI_surr_tmp[:,:,np.where(ls_lat==lat)[0]])
             thr = 1
             nbROIsig = []; ls_th = []
             for t in np.arange(np.shape(surr_thresh)[0]):
@@ -137,10 +136,13 @@ def run_analysis(config, MatMat, EucMat, dict_df, comp_parc, nbProcs):
                 ls_th.append(th)
                 #if th==thr:
                 tmp = surr_thresh[t]['mean_SDI']*np.abs(surr_thresh[t]['SDI_sig'])
+                #tmp = surr_thresh[t]['mean_SDI']
                 nbROIsig.append(len(np.where(np.abs(surr_thresh[t]['SDI_sig']))[0]))
                 #plot_rois(tmp, config["Parameters"]["scale"], config, vmin=-1, vmax=1, label='SDI_Sig%d'%(surr_thresh[0]['threshold']))
+                #plot_rois_pyvista(tmp, config["Parameters"]["scale"], config, vmin=-2.5, vmax=2.5, label='SDI_th%d_%s'%(surr_thresh[t]['threshold'], lat))
                 plot_rois_pyvista(tmp, config["Parameters"]["scale"], config, vmin=-1, vmax=1, label='SDI_th%d_%s'%(surr_thresh[t]['threshold'], lat))
-        
+
+
             ax[l].plot(np.array(ls_th), np.array(nbROIsig))
             ax[l].set_xlabel('Threshold #Subs'); ax[l].set_ylabel('#ROIs with significant SDI')
             ax[l].set_title('%s'% lat)
@@ -154,7 +156,8 @@ def run_analysis(config, MatMat, EucMat, dict_df, comp_parc, nbProcs):
     
 if __name__ == "__main__":
     # Load the default configuration from the file
-    config_path = 'config.json' #'config_PEP3.json'
+    # config_path = 'config.json' #'config_PEP3.json'
+    config_path = 'config_PEP3.json'
     config_defaults = reading.check_config_file(config_path)
     MatMat, EucMat, dict_df, compatibility, nbProcs = load_data(config_defaults)
     run_analysis(config_defaults, MatMat, EucMat, dict_df, compatibility, nbProcs)

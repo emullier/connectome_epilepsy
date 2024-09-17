@@ -30,7 +30,7 @@
             "dsi"
         ],
         "processing": {
-              "orig": "struct_data"
+              "example": "Individual_Connectomes"
         }
     },
     "BIAS": {

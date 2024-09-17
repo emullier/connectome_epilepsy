@@ -85,12 +85,19 @@ def diff_before_after_rotation(Q_ind, Q_all_rotated, df_conc, p=''):
 
     
 
+import numpy as np
+import matplotlib.pyplot as plt
+
 def extract_ctx_ROIs(Mat):
-    nbROIs = np.shape(Mat)[0]  # Number of regions in the matrix
+    # Get the number of regions in the matrix (assuming the matrix is 3D: nbROIs x nbROIs x N)
+    nbROIs = np.shape(Mat)[0]
+
+    if Mat.ndim==2:
+        Mat = Mat[:, :, np.newaxis]
 
     # Check if the number of ROIs is odd (remove brainstem if necessary)
     if nbROIs % 2 != 0:
-        Mat = Mat[:-1, :-1]  # Remove the last region (brainstem)
+        Mat = Mat[:-1, :-1, :]  # Remove the last region (brainstem)
         nbROIs -= 1  # Adjust the number of ROIs after removing brainstem
 
     # Divide the matrix into two halves
@@ -108,10 +115,13 @@ def extract_ctx_ROIs(Mat):
     # Combine indices
     cortical_indices = np.concatenate([right_cortical_indices, left_cortical_indices])
 
-    # Extract the submatrix corresponding to cortical regions
-    cortical_ROIs = Mat[cortical_indices[:, None], cortical_indices]
+    # Extract the submatrix corresponding to cortical regions for all 3D slices
+    cortical_ROIs = Mat[np.ix_(cortical_indices, cortical_indices, np.arange(Mat.shape[2]))]
 
-    fig, axs = plt.subplots(1,1)
-    axs.imshow(cortical_ROIs)
+    # Plot the first slice of the 3D matrix (for example)
+    fig, axs = plt.subplots(1, 1)
+    axs.imshow(cortical_ROIs[:, :, 0])  # Visualize the first 2D slice of the 3D matrix
+
+    cortical_ROIs = np.squeeze(cortical_ROIs)
 
     return cortical_ROIs
