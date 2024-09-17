@@ -11,7 +11,7 @@
       "gender": ["M", "F"],
       "group": [ "HC","EP"],  
       "dwi": ["multishell", "dsi"],
-      "processing": {"shore":"cmp-3.1.0_shore", "multitissue":"cmp-3.1.0_multitissue", "L2008_DSI": "cmp-3.0-RC4_L2008_DSI", "L2008_multish": "cmp-3.0-RC4_L2008_multishell", "bmax5000":"cmp-3.1.0_bmax5000dsi", "orig": "struct_data"}
+      "processing": {"shore":"cmp-3.1.0_shore", "multitissue":"cmp-3.1.0_multitissue", "L2008_DSI": "cmp-3.0-RC4_L2008_DSI", "L2008_multish": "cmp-3.0-RC4_L2008_multishell", "bmax5000":"cmp-3.1.0_bmax5000dsi", "orig": "struct_data", "example": "Individual_Connectomes"}
     },
 
     "BIAS": {

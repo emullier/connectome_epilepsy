@@ -93,6 +93,7 @@ def filtered_dataframe(dataframe_orig, filters, config):
     dataframe = dataframe_orig
     for f,filter in enumerate(filters):
         val_filter = config["Parameters"][filter]
+        print(val_filter)
         if 'age' in filter:
             dataframe = dataframe.iloc[np.where((dataframe[filter]>val_filter[0])*(dataframe[filter]<val_filter[1]))[0]]
         elif isinstance(val_filter[0], str):

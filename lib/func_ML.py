@@ -12,60 +12,11 @@ import itertools
 import seaborn as sns
 import pygsp
 import random
-
-def bias_PCAplot(MatMat, df_dict, colors_key, processings):
-    fig, axs = plt.subplots(len(processings), len(colors_key)+1, figsize=(5 * (len(colors_key)+1), 5))
-    
-    ls_proc = []
-    for p,proc in enumerate(processings):
-        Mat = MatMat[proc]
-        print(np.shape(Mat))
-        ls_proc.extend(np.zeros(np.shape(Mat)[2])*p)
-    ls_proc = np.array(ls_proc)
-        
-    for p,proc in enumerate(processings):
-        Mat = MatMat[proc]
-        df = df_dict[proc]
-    
-        X_vec = np.zeros((np.shape(Mat)[0]*np.shape(Mat)[0], np.shape(Mat)[2]))
-        for s in np.arange(np.shape(MatMat[proc])[2]):
-            X_vec[:,s] = Mat[:,:,s].flatten()
-        pca = PCA(n_components=2)
-        X_pca = pca.fit_transform(np.transpose(X_vec))
-    
-        for c, color in enumerate(colors_key):
-            colors = np.array(df[color])
-            if isinstance(colors[0], str):
-                uniq = np.unique(colors)
-                color_mapping = {name: idx for idx, name in enumerate(uniq)}
-                colors = np.array([color_mapping[col] for col in colors])
-            
-            if len(processings)==1:
-                ax = axs[c]
-            else:
-                ax = axs[p,c]
-                
-            scatter = ax.scatter(X_pca[:,0], X_pca[:,1], 50, c=colors)
-            ax.set_title('%s'% color), ax.set_xlabel('PCA Component 1'), ax.set_ylabel('PCA Component 2') 
-            fig.colorbar(scatter, ax=ax, fraction=0.046, pad=0.04)
-
-        
-        #    if c==len(colors_key)-1:
-        #        ax = axs[p, c+1]
-        #        ax.scatter(X_pca[:,0], X_pca[:,1], 50, c=ls_proc)
-        #        ax.set_title('%s'% color), ax.set_xlabel('PCA Component 1'), ax.set_ylabel('PCA Component 2') 
-        
-        #fig.suptitle('Processing %s'% proc, fontsize=16)
-        ax.annotate('Processing %s' % proc, xy=(0, 1), xytext=(0, 10), xycoords='axes fraction', textcoords='offset points', ha='center', va='baseline', fontsize=16)
-        #fig.text(0.5, 0.98 - p*0.1, 'Processing %s' % proc, ha='center', va='top', fontsize=16)
-
-    plt.tight_layout()
-    plt.show(block=False)
-
-    return X_pca, fig, axs
+from neurosynth.base.dataset import Dataset
+from neurosynth.analysis import decode
 
 
-def bias_PCAplot_concat(MatConc, df_conc, colors_key):
+def bias_PCAplot_concat(MatConc, df_conc, colors_key, p=''):
     fig, axs = plt.subplots(1, len(colors_key)+1, figsize=(5 * (len(colors_key)+1), 5))
     Mat = MatConc
     df = df_conc
@@ -74,23 +25,22 @@ def bias_PCAplot_concat(MatConc, df_conc, colors_key):
         X_vec[:,s] = Mat[:,:,s].flatten()
     pca = PCA(n_components=2)
     X_pca = pca.fit_transform(np.transpose(X_vec))
-    
     for c, color in enumerate(colors_key):
         colors = np.array(df[color])
         if isinstance(colors[0], str):
             uniq = np.unique(colors)
             color_mapping = {name: idx for idx, name in enumerate(uniq)}
-            colors = np.array([color_mapping[col] for col in colors])
-            
+            colors = np.array([color_mapping[col] for col in colors])    
         scatter = axs[c].scatter(X_pca[:,0], X_pca[:,1], 50, c=colors)
         axs[c].set_title('%s'% color), axs[c].set_xlabel('PCA Component 1'), axs[c].set_ylabel('PCA Component 2') 
         fig.colorbar(scatter, ax=axs[c], fraction=0.046, pad=0.04)
+        fig.suptitle('%s'%p)
         
-        if c==len(colors_key)-1:
-            axs[c+1].scatter(X_pca[:,0], X_pca[:,1], 50, c=list(df['proc']))
-            axs[c+1].set_title('%s'% 'Processing'), axs[c+1].set_xlabel('PCA Component 1'), axs[c+1].set_ylabel('PCA Component 2') 
+        #if c==len(colors_key)-1:
+        #    axs[c+1].scatter(X_pca[:,0], X_pca[:,1], 50, c=list(df['proc']))
+        #    axs[c+1].set_title('%s'% 'Processing'), axs[c+1].set_xlabel('PCA Component 1'), axs[c+1].set_ylabel('PCA Component 2') 
 
-    plt.savefig('./public/images/BiasPCA.png')
+    plt.savefig('./public/static/images/BiasPCA_concat.png')
     plt.tight_layout()
     plt.show(block=False)
 
@@ -111,56 +61,36 @@ def ROIs_euclidean_distance(scale):
     return EucDist, cort_rois, hemii
 
 
-def consensus_old(MatMat, processings, cort_rois, df_dict, EucDist, hemii, nbins):
-    fig, axs = plt.subplots(len(processings),3)
-    G_dist = {}; G_unif = {}
-    for p,proc in enumerate(processings):
-        Mat = MatMat[proc]
-        Mat = Mat[cort_rois, :, :]
-        Mat = Mat[:, cort_rois, :]
-        df = df_dict[proc]
-        [G, Gc] = fcn_groups_bin.fcn_groups_bin(Mat, EucDist, hemii, nbins) 
-        G_dist[proc] = G
-        G_unif[proc] = Gc
-        print(G)
-        
-        if len(processings)==1:
-            ims = axs[0].imshow(G); axs[0].set_title('Distance-based Consensus'); 
-            ims = axs[1].imshow(Gc); axs[1].set_title('Uniform-based Consensus'); 
-            fcn_groups_bin.plot_dist_distribution(axs[2], Mat, EucDist, nbins, G, Gc), axs[2].set_aspect('equal')           
-        else:
-            ims = axs[p,0].imshow(G); axs[p,0].set_title('Distance-based Consensus'); 
-            ims = axs[p,1].imshow(Gc); axs[p,1].set_title('Uniform-based Consensus'); 
-            fcn_groups_bin.plot_dist_distribution(axs[p,2], Mat, EucDist, nbins, G, Gc), axs[p,2].set_aspect('equal')
-    return G_dist, G_unif
-
-
 def consensus(MatMat, processings,  df_dict, EucMat, nbins):
     fig, axs = plt.subplots(len(processings),3)
-    G_dist = {}; G_unif = {}
+    G_dist = {}; G_unif = {}; EucDist = {}
     for p,proc in enumerate(processings):
         Mat = MatMat[proc]
         df = df_dict[proc]
-        EucDist = np.average(EucMat[proc], axis=2)
-        hemii = np.ones(np.shape(EucDist)[0])
+        EucDist[proc] = np.average(EucMat[proc], axis=2)
+        hemii = np.ones(np.shape(EucDist[proc])[0])
         #if np.shape(EucDist)[0]%2==0:
         hemii[int(len(hemii)/2):] = 2
-        [G, Gc] = fcn_groups_bin.fcn_groups_bin(Mat, EucDist, hemii, nbins) 
-        G_dist[proc] = G
-        G_unif[proc] = Gc
+        if Mat.ndim ==3:
+            [G, Gc] = fcn_groups_bin.fcn_groups_bin(Mat, EucDist[proc], hemii, nbins) 
+            G_dist[proc] = G; G_unif[proc] = Gc
+        else:
+            G_dist[proc] = Mat; G_unif[proc] = Mat; EucDist[proc]= EucMat[proc]
         
         if len(processings)==1:
             ims = axs[0].imshow(G); axs[0].set_title('Distance-based Consensus'); axs[0].set_ylabel('%s'% proc)
             ims = axs[1].imshow(Gc); axs[1].set_title('Uniform-based Consensus'); 
-            fcn_groups_bin.plot_dist_distribution(axs[2], Mat, EucDist, nbins, G, Gc), axs[2].set_aspect('equal')           
+            fcn_groups_bin.plot_dist_distribution(axs[2], Mat, EucDist[proc], nbins, G, Gc), axs[2].set_aspect('equal')           
         else:
             ims = axs[p,0].imshow(G); axs[p,0].set_title('Distance-based Consensus'); axs[p,0].set_ylabel('%s'% proc)
             ims = axs[p,1].imshow(Gc); axs[p,1].set_title('Uniform-based Consensus'); 
-            fcn_groups_bin.plot_dist_distribution(axs[p,2], Mat, EucDist, nbins, G, Gc);
+            fcn_groups_bin.plot_dist_distribution(axs[p,2], Mat, EucDist[proc], nbins, G, Gc);
             axs[p, 2].set_title('')
     
+        #plt.savefig('./public/static/images/consensus_proc%s.png'%proc)
+        plt.savefig('./public/static/images/consensus_proc%d.png'%p)
     plt.show(block=False)
-    return G_dist, G_unif
+    return G_dist, G_unif, EucDist
 
 
 def compare_matrices(Mat1, Mat2, df_mat1, df_mat2, proc1, proc2, plot=False):
@@ -172,7 +102,10 @@ def compare_matrices(Mat1, Mat2, df_mat1, df_mat2, proc1, proc2, plot=False):
         if plot==True:
             fig, ax = plt.subplots(1,3, figsize=(20,5))
             nROIs = np.shape(Mat1)[0]
-            half_nROIs = (nROIs -1 ) // 2
+            if nROIs%2==0:
+                half_nROIs = int(nROIs/2)
+            else:
+                half_nROIs = int((nROIs-1 ) // 2)
             hemisphere_array = np.array([1] * half_nROIs + [2] * half_nROIs + [3])
             connection_matrix = np.zeros((nROIs, nROIs), dtype=int)
             for i in range(nROIs):
@@ -290,6 +223,8 @@ def group_normalized_lap(MatMat, EucMat, procs, plot=False):
             im2 = axs[p,1].imshow(Q[proc], extent = [0,len(Q[proc]),0,len(Q[proc])], aspect='auto', cmap='jet', vmin = -0.1,vmax=0.1)
             im2 = axs[p,1].set_title('%s \n Eigenvectors'%proc)
             im2 = axs[p,1].set_xlabel('eigenvalue index')
+            #plt.savefig('./public/static/images/group_normalized_lap_proc%s.png'%proc)
+            plt.savefig('./public/static/images/group_normalized_lap_proc%d.png'%p)
     if plot==True:
         plt.show(block=False) 
     return P,Q
@@ -304,8 +239,6 @@ def normalize_Lap(A):
     D = np.diag(D)
     Dn = np.power(D, -0.5)
     Dn = np.diag(np.diag(Dn))
-
-
     # symmetric normalize Adjacency
     An = Dn@A@Dn
     Ln = np.diag(np.full(len(An),1)) - An
@@ -315,9 +248,7 @@ def normalize_Lap(A):
 def ind_normalized_lap(MatMat, EucMat, df, plot=False):
     P = np.zeros((np.shape(MatMat)[0], len(df['sub']))); Q = np.zeros((np.shape(MatMat)[0], np.shape(MatMat)[0], len(df['sub'])))
     Ln = np.zeros((np.shape(MatMat)[0], np.shape(MatMat)[0], len(df['sub']))); An = np.zeros((np.shape(MatMat)[0], np.shape(MatMat)[0], len(df['sub'])));
-      
     for s,sub in enumerate(list(df['sub'])):
-        print(sub)
         tmp = MatMat[:,:,s]
         diag_zeros = np.diag(np.diag(tmp))
         tmp = tmp - diag_zeros
@@ -330,7 +261,18 @@ def ind_normalized_lap(MatMat, EucMat, df, plot=False):
     return P, Q, Ln, An
 
 
-def rotation_procrustes(Q_all, P_all,  plot=False, title=''):
+def cons_normalized_lap(Mat, EucDist, df, plot=False):
+    tmp = Mat
+    diag_zeros = np.diag(np.diag(tmp))
+    tmp = tmp - diag_zeros
+    Ln, An  = normalize_Lap(tmp)
+    sc = pygsp.graphs.Graph(tmp, lap_type='normalized', coords=EucDist)
+    sc.compute_fourier_basis()
+    P = sc.e
+    Q = sc.U
+    return P, Q, Ln, An
+
+def rotation_procrustes(Q_all, P_all,  plot=False, p=''):
     if np.shape(Q_all)[2]>1:
         Q_all_rotated = np.zeros(np.shape(Q_all))
         Q_all_rotated[:,:,0] = Q_all[:,:,0]
@@ -357,28 +299,40 @@ def rotation_procrustes(Q_all, P_all,  plot=False, title=''):
 
 
         if plot==True:
-            fig, ax = plt.subplots(1,5, figsize=(20,3))            
-            ax[0].imshow(Q_mean_rotated,  extent = [0,np.shape(Q_all)[2],0,np.shape(Q_all)[2]], aspect='auto', cmap='jet', vmin = -0.1,vmax=0.1)
-            ax[0].set_title('Average of rotated eigenvectors');  ax[0].set_aspect('equal')
-            cax1 = ax[1].imshow(np.mean(Q_all, axis=2),  extent = [0,np.shape(Q_all)[2],0,np.shape(Q_all)[2]], aspect='auto', cmap='jet', vmin = -0.1,vmax=0.1)
-            ax[1].set_title('Average of original eigenvectors'); ax[1].set_aspect('equal')
-            ax[2].plot(range(np.shape(Q_all)[0]), P_mean, range(np.shape(Q_all)[0]), P_mean_rotated)
-            ax[2].set_title('Original and Rotated Eigenvectors '); ax[2].set_xlabel('eigenvalue index'); ax[2].set_ylabel('eigenvalues'); ax[2].legend(['Original Eigenvalues', 'Rotated Eigenvalues'])
+            fig, ax = plt.subplots(2,3, figsize=(10,3))            
+            ax[0,0].imshow(Q_mean_rotated,  extent = [0,np.shape(Q_all)[2],0,np.shape(Q_all)[2]], aspect='auto', cmap='jet', vmin = -0.1,vmax=0.1)
+            ax[0,0].set_title('Average of rotated eigenvectors');  ax[0,0].set_aspect('equal')
+            cax1 = ax[1,0].imshow(np.mean(Q_all, axis=2),  extent = [0,np.shape(Q_all)[2],0,np.shape(Q_all)[2]], aspect='auto', cmap='jet', vmin = -0.1,vmax=0.1)
+            ax[1,0].set_title('Average of original eigenvectors'); ax[1,0].set_aspect('equal')
+            
+            gs = ax[0, 2].get_gridspec()
+            for a in [ax[0, 2], ax[1, 2]]:
+                a.remove()
+            ax_big = fig.add_subplot(gs[:, 2])
+            ax_big.plot(range(np.shape(Q_all)[0]), P_mean, range(np.shape(Q_all)[0]), P_mean_rotated)
+            ax_big.set_title('Original and Rotated Eigenvectors '); ax_big.set_xlabel('eigenvalue index'); ax_big.set_ylabel('eigenvalues'); ax_big.legend(['Original Eigenvalues', 'Rotated Eigenvalues'])
 
         A = Q_all[:,:,0].T; B = Q_all[:,:,1].T; A_cos = np.dot(A, B.T)
         if plot==True:
-            ax[3].imshow(A_cos,cmap = 'seismic',vmin = -1,vmax=1)
-            ax[3].set_title('Cosine Similarity Before Rotation'); ax[3].set_xlabel('Subject 1 eigenvectors'), ax[3].set_ylabel('Subject 2 eigenvectors')
+            ax[0,1].imshow(A_cos,cmap = 'seismic',vmin = -1,vmax=1)
+            ax[0,1].set_title('Cosine Similarity Before Rotation'); ax[0,1].set_xlabel('Subject 1 eigenvectors'), ax[0,1].set_ylabel('Subject 2 eigenvectors')
         
         A = Q_all_rotated[:,:,0].T; B = Q_all_rotated[:,:,1].T; A_cos = np.dot(A,B.T)
         if plot==True:
-            ax[4].imshow(A_cos,cmap = 'seismic', vmin = -1,vmax=1); ax[4].set_title('Cosine Similarity After Rotation'); ax[4].set_xlabel('Subject 1 eigenvectors'); ax[4].set_ylabel('Subject 2 eigenvectors')        
-            fig.suptitle('%s'%title); plt.show(block=False)
-        
+            ax[1,1].imshow(A_cos,cmap = 'seismic', vmin = -1,vmax=1); ax[1,1].set_title('Cosine Similarity After Rotation'); ax[1,1].set_xlabel('Subject 1 eigenvectors'); ax[1,1].set_ylabel('Subject 2 eigenvectors')        
+            fig.suptitle('%s'%p); plt.show(block=False)
+            plt.savefig('./public/static/images/RotationProcrustes%s.png'%p)
+    
+    else:
+        Q_all_rotated = Q_all
+        P_all_rotated = P_all
+        R_all = 0; scale_R = 0
+        print('Not Procrustes alignment performed')
+    
     return Q_all_rotated, P_all_rotated, R_all, scale_R
 
 
-def reconstruct_SC(MatMat, df, P, Q, k=None, plot=False, title=''):
+def reconstruct_SC(MatMat, df, P, Q, k=None, plot=False, p=''):
     Ln_group_recon = np.zeros(np.shape(MatMat))
     MatMat_recon = np.zeros(np.shape(MatMat))
     
@@ -409,18 +363,19 @@ def reconstruct_SC(MatMat, df, P, Q, k=None, plot=False, title=''):
     
     if plot:
         fig, axs = plt.subplots(1, 3, figsize=(9, 4))
-        im1 = axs[0].imshow(MatMat_recon[:,:,1])
+        im1 = axs[0].imshow(MatMat_recon[:,:,0])
         axs[0].set_title('Reconstructed Normalized SC - Subject 1')
-        im2 = axs[1].imshow(MatMat[:,:,1])
+        im2 = axs[1].imshow(MatMat[:,:,0])
         axs[1].set_title('Raw Normalized SC - Subject 1')
-        im3 = axs[2].scatter(MatMat[:,:,1], MatMat_recon[:,:,1])
+        im3 = axs[2].scatter(MatMat[:,:,0], MatMat_recon[:,:,0])
         axs[2].set_title('Pearson correlation - Subject 1'); axs[2].set_xlabel('SC'); axs[2].set_ylabel('Reconstructed SC');
-        fig.suptitle('%s' % title)
+        fig.suptitle('%s' % p)
+        #plt.savefig('./public/static/images/reconstruct_SC_proc%s.png'%title)
+        plt.savefig('./public/static/images/reconstruct_SC_proc%s.png'%p)
         plt.show(block=False)
 
     return MatMat_recon
 
-    return MatMat_recon
 
 def reconstruct_SC_part(MatMat, nbEig, df, P, Q, plot=False):
     Q = Q[:, :nbEig, :]; P = P[:nbEig,:]
@@ -480,7 +435,7 @@ def harmonics_randomized_part_consensus(MatMat, RandCons, nbPerm, EucDist, df_ra
             k = k+1  
     return eigenvalues_perm, eigenvalues_perm_mat, eigenvectors_perm, eigenvectors_perm_mat, labels_perm
         
-def plot_randomized_part_consensus(MatMat, eigenvectors_perm, nbPerm, labels_perm, ls_bins, title='', plot=False):
+def plot_randomized_part_consensus(MatMat, eigenvectors_perm, nbPerm, labels_perm, ls_bins, p='', plot=False):
     [nROIs, nROIs, nSubs] = np.shape(MatMat)
     ### Generate the corresponding labels
     labels_perm_bin = []
@@ -526,5 +481,11 @@ def plot_randomized_part_consensus(MatMat, eigenvectors_perm, nbPerm, labels_per
         ax.set_xlabel('Eigenmode'); ax.set_xticks(range(0, nROIs, 10)); ax.set_ylim([0,1.1])
         ax.grid('on'); ax.legend(handles=handles, labels=ls_bins, loc='lower left', title='Bin');
         ax.set_ylabel('Correlation'); ax.set_title('Similarity between network harmonics', fontsize=15); 
-        fig.suptitle('%s'%title)
+        fig.suptitle('%s'%p)
+        plt.savefig('./public/static/images/Randomized_consensus_proc%s.png'%p)
     return bin_variability
+
+
+
+    
+    

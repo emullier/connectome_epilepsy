@@ -20,7 +20,6 @@ def concatenate_processings(MatMat, EucMat, dict_df, config):
             EucConc = EucMat[proc]
             dict_df[proc]['proc'] = np.ones(np.shape(MatMat[proc])[2])*(p+1)
             df_conc = dict_df[proc]
-            
             #df_conc['proc'] = np.ones(np.shape(dict_df[proc])[0])*p
         else:
             MatConc = np.concatenate((MatConc, MatMat[proc]),axis=2)
@@ -63,7 +62,7 @@ def compare_harmonicwise_rotations(R_all):
     
     return diff_norm
 
-def diff_before_after_rotation(Q_ind, Q_all_rotated, df_conc):
+def diff_before_after_rotation(Q_ind, Q_all_rotated, df_conc, p=''):
     colors = ['r', 'b', 'g', 'y', 'm']
     diff_eig = np.zeros((np.shape(Q_ind)[0], np.shape(Q_ind)[2]))
     fig, axs = plt.subplots(2, 1, figsize=(9, 4))
@@ -78,6 +77,7 @@ def diff_before_after_rotation(Q_ind, Q_all_rotated, df_conc):
     axs[0].set_title('Difference Q - Qrotated (all eigenvectors, all subjects)')
     axs[0].set_ylabel('Euclidean distance'); axs[0].set_ylim([.90,1.1]); axs[0].set_xlabel('Eigenvectors')
     axs[1].set_ylabel('Euclidean distance'); axs[1].set_ylim([.90,1.1]); axs[1].set_xlabel('Subjects')
+    plt.savefig('./public/static/images/diff_before_rotation%s.png'%p)
     plt.show(block=False) 
     
     return diff_eig
@@ -85,4 +85,33 @@ def diff_before_after_rotation(Q_ind, Q_all_rotated, df_conc):
 
     
 
-        
+def extract_ctx_ROIs(Mat):
+    nbROIs = np.shape(Mat)[0]  # Number of regions in the matrix
+
+    # Check if the number of ROIs is odd (remove brainstem if necessary)
+    if nbROIs % 2 != 0:
+        Mat = Mat[:-1, :-1]  # Remove the last region (brainstem)
+        nbROIs -= 1  # Adjust the number of ROIs after removing brainstem
+
+    # Divide the matrix into two halves
+    half_nbROIs = nbROIs // 2
+    right_hemisphere_indices = np.arange(half_nbROIs)
+    left_hemisphere_indices = np.arange(half_nbROIs, nbROIs)
+
+    # Define the number of cortical regions (57 per hemisphere)
+    cortical_regions_count = 57
+
+    # Extract indices for cortical regions
+    right_cortical_indices = right_hemisphere_indices[:cortical_regions_count]
+    left_cortical_indices = left_hemisphere_indices[:cortical_regions_count]
+
+    # Combine indices
+    cortical_indices = np.concatenate([right_cortical_indices, left_cortical_indices])
+
+    # Extract the submatrix corresponding to cortical regions
+    cortical_ROIs = Mat[cortical_indices[:, None], cortical_indices]
+
+    fig, axs = plt.subplots(1,1)
+    axs.imshow(cortical_ROIs)
+
+    return cortical_ROIs
