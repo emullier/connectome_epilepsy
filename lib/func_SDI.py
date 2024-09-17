@@ -114,13 +114,25 @@ def load_EEG_example():
 
 
 def surrogate_sdi(scU,  Vlow, Vhigh, nbSurr=1000, example=False): 
-    ### reconstruct the data randomizing the GFT weights
-    ### calculate a randomized matrix of 1 and -1 (PHI) to generate surrogates for SDI analyses
+    X_RS_allPat = load_EEG_example()
+    SDI_surr = np.zeros((114, 19, len(X_RS_allPat)))
+    
     if example==True:
         with h5py.File('/home/localadmin/Documents/CODES/data/PHI.mat', 'r') as f:
             tmp = f['PHI'][()]
         PHI = utils.extract_ctx_ROIs(tmp)
         nbSurr = np.shape(PHI)[2]
+
+        GSP2_surr = sio.loadmat('/home/localadmin/Documents/CODES/data/results/data_GSP2_surr.mat')
+        GSP2_surr = GSP2_surr['data_GSP2_surr'][0]
+
+        for s in np.arange(np.shape(GSP2_surr)[0]):
+            sub = GSP2_surr[s][0]
+            lat = GSP2_surr[s][1]
+            surr = GSP2_surr[s][2][0][0][0]
+            idxs_ctxs = np.concatenate((np.arange(0,57), np.arange(60,117)))
+            SDI_surr[:,:,s] = surr[idxs_ctxs,:]
+
     else:
         PHI = np.zeros((np.shape(scU)[0], np.shape(scU)[0], nbSurr))
         for n in np.arange(nbSurr):
@@ -129,28 +141,24 @@ def surrogate_sdi(scU,  Vlow, Vhigh, nbSurr=1000, example=False):
             PHIdiag[np.where(PHIdiag==0)] = -1
             PHI[:,:,n] = np.diag(PHIdiag)
 
-    X_RS_allPat = load_EEG_example()
-    SDI_surr = np.zeros((114, 19, len(X_RS_allPat)))
-    for s in np.arange(len(X_RS_allPat)):
-        for n in np.arange(19):
-            X_RS = X_RS_allPat[s]['X_RS'][:114,:,:]
-            zX_RS = scipy.stats.zscore(X_RS, axis=None)
-            XrandS = np.zeros(np.shape(X_RS))
-            PHI_curr = np.squeeze(PHI[:,:,n])
-            for p in np.arange(np.shape(X_RS)[2]):
-                zX_RS_curr = scipy.stats.zscore(zX_RS[:,:,p])
-                XrandS[:,:,p] = scU@PHI_curr@np.transpose(scU)@zX_RS_curr
-                #  X_hat=M'X, normally reconstructed signal would be Xrecon=M*X_hat=MM'X, instead of M, M*PHI is V with randomized signs
-            X_c, X_d, N_c, N_d, SDI = filter_signal_with_harmonics(scU, XrandS, Vlow, Vhigh)
-            SDI_surr[:,n,s]=np.mean(N_d,1)/np.mean(N_c,1);#(np.shape(SDI_surr))
+        for s in np.arange(len(X_RS_allPat)):
+            for n in np.arange(19):
+                X_RS = X_RS_allPat[s]['X_RS'][:114,:,:]
+                zX_RS = scipy.stats.zscore(X_RS, axis=None)
+                XrandS = np.zeros(np.shape(X_RS))
+                PHI_curr = np.squeeze(PHI[:,:,n])
+                for p in np.arange(np.shape(X_RS)[2]):
+                    zX_RS_curr = scipy.stats.zscore(zX_RS[:,:,p])
+                    XrandS[:,:,p] = scU@PHI_curr@np.transpose(scU)@zX_RS_curr
+                    #  X_hat=M'X, normally reconstructed signal would be Xrecon=M*X_hat=MM'X, instead of M, M*PHI is V with randomized signs
+                X_c, X_d, N_c, N_d, SDI = filter_signal_with_harmonics(scU, XrandS, Vlow, Vhigh)
+                SDI_surr[:,n,s]=np.mean(N_d,1)/np.mean(N_c,1);#(np.shape(SDI_surr))
     
-    
-    return SDI_surr, XrandS
+    return SDI_surr
 
 
 def select_significant_sdi(SDI, SDI_surr):
     ### initiation of max and min for threshold
-    print(np.shape(SDI))
     max_SDI_surr = np.zeros((np.shape(SDI)))
     min_SDI_surr = np.copy(max_SDI_surr)
     SDI_thr_max = np.copy(min_SDI_surr); SDI_thr_min = np.copy(min_SDI_surr)
@@ -161,8 +169,6 @@ def select_significant_sdi(SDI, SDI_surr):
     mean_SDI = np.mean(SDI, axis=1)
     ### find threshold
     for s in np.arange(np.shape(SDI_surr)[2]):
-        #print(np.shape(max_SDI_surr[:,s]))
-        #print(np.shape(np.max(SDI_surr[:,:,s], axis=1)))
         max_SDI_surr[:,s] = np.max(SDI_surr[:,:,s],axis=1)
         min_SDI_surr[:,s] = np.min(SDI_surr[:,:,s],axis=1)    
         ### select significant SDI for each subject, across surrogates individual th, first screening
