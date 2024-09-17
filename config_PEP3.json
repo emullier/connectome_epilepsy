@@ -1,40 +1,57 @@
 {
-    "Parameters": {
+  "Parameters": {
       "scale": 2,
       "metric": "number_of_fibers",
-      "data_dir": "/media/localadmin/My Passport/PROJECT_CONNECTOME_EPILEPSY/cmp_harmonization_merged",
+      "data_dir":  "/media/localadmin/My Passport/PROJECT_CONNECTOME_EPILEPSY/cmp_harmonization_merged",
       "info_path": "./demographic/info_dsi_multishell_merged_csv.csv",
-      "output_dir": ".",
+      "output_dir": "./output",
+      "fig_dir": "./figures",
       "load_dataset": true,
-      "filters": ["age", "gender", "group"],
-      "age": [0,100],
-      "gender": ["M", "F"],
-      "group": [ "HC","EP"],  
+      "filters": [
+          "age",
+          "gender",
+          "group",
+          "dwi"
+      ],
+      "age": [
+          0,
+          100
+      ],
+      "gender": [
+          "M",
+          "F"
+      ],
+      "group": [ 
+          "HC",
+          "EP"
+      ],  
+      "dwi": [
+          "multishell", 
+          "dsi"
+      ],
       "processing": {
-        "example": "Individual_connectomes", "example": "Individual_connectomes"
-
+            "orig": "struct_data"
       }
-    },
-    "BIAS": {
+  },
+  "BIAS": {
       "perform_analysis": true,
       "DimReduc": "PCA",
-      "colors_key": [
-        "age",
-        "gender",
-        "dwi",
-        "group"
-      ]
-    },
-    "CONSENSUS": {
+      "colors_key": ["age", "gender", "dwi", "group"] 
+  },
+  "CONSENSUS": {
       "perform_analysis": false,
-      "nbins": 40
-    },
-    "HARMONICS": {
+      "nbins": 10
+  },
+  "HARMONICS": {
       "generate_harmonics": false,
       "compare_harmonics": false,
       "consensus": false
-    },
-    "INDvsCONS": {
-      "perform_analysis": true
-    }
+  },
+  "INDvsCONS": {
+      "perform_analysis": false
+  },
+  "SDI": {
+      "perform_analysis": false
   }
+}
+

@@ -71,20 +71,21 @@ def consensus(MatMat, processings,  df_dict, EucMat, nbins):
         hemii = np.ones(np.shape(EucDist[proc])[0])
         #if np.shape(EucDist)[0]%2==0:
         hemii[int(len(hemii)/2):] = 2
-        if Mat.ndim ==3:
+        print(np.shape(Mat))
+        if Mat.ndim ==3 and np.shape(Mat)[2]>1:
             [G, Gc] = fcn_groups_bin.fcn_groups_bin(Mat, EucDist[proc], hemii, nbins) 
             G_dist[proc] = G; G_unif[proc] = Gc
         else:
-            G_dist[proc] = Mat; G_unif[proc] = Mat; EucDist[proc]= EucMat[proc]
+            G_dist[proc] = np.squeeze(Mat); G_unif[proc] = np.squeeze(Mat); EucDist[proc]= EucMat[proc]
         
         if len(processings)==1:
-            ims = axs[0].imshow(G); axs[0].set_title('Distance-based Consensus'); axs[0].set_ylabel('%s'% proc)
-            ims = axs[1].imshow(Gc); axs[1].set_title('Uniform-based Consensus'); 
-            fcn_groups_bin.plot_dist_distribution(axs[2], Mat, EucDist[proc], nbins, G, Gc), axs[2].set_aspect('equal')           
+            ims = axs[0].imshow(G_dist[proc]); axs[0].set_title('Distance-based Consensus'); axs[0].set_ylabel('%s'% proc)
+            ims = axs[1].imshow(G_unif[proc]); axs[1].set_title('Uniform-based Consensus'); 
+            fcn_groups_bin.plot_dist_distribution(axs[2], Mat, EucDist[proc], nbins, G_dist[proc], G_unif[proc]), axs[2].set_aspect('equal')           
         else:
-            ims = axs[p,0].imshow(G); axs[p,0].set_title('Distance-based Consensus'); axs[p,0].set_ylabel('%s'% proc)
-            ims = axs[p,1].imshow(Gc); axs[p,1].set_title('Uniform-based Consensus'); 
-            fcn_groups_bin.plot_dist_distribution(axs[p,2], Mat, EucDist[proc], nbins, G, Gc);
+            ims = axs[p,0].imshow(G_dist[proc]); axs[p,0].set_title('Distance-based Consensus'); axs[p,0].set_ylabel('%s'% proc)
+            ims = axs[p,1].imshow(G_unif[proc]); axs[p,1].set_title('Uniform-based Consensus'); 
+            fcn_groups_bin.plot_dist_distribution(axs[p,2], Mat, EucDist[proc], nbins, G_dist[proc], G_unif[proc]);
             axs[p, 2].set_title('')
     
         #plt.savefig('./public/static/images/consensus_proc%s.png'%proc)

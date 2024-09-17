@@ -8,10 +8,13 @@ import pygsp
 import lib.func_ML as ML
 import lib.func_reading as reading
 from scipy.stats import binom
+import h5py
+import lib.func_utils as utils
 
 
 def get_cutoff_freq(sc, data):
     X_hat_L = np.zeros(np.shape(data))
+    #sc = np.squeeze(sc)
     ## compute CUT-OFF FREQUENCY
     for ep in np.arange(np.shape(data)[2]):
         X_hat_L[:,:,ep]=(sc)@data[:,:,ep]
@@ -110,34 +113,44 @@ def load_EEG_example():
     return X_RS_allPat
 
 
-def surrogate_sdi(scU,  Vlow, Vhigh, nbSurr=1000): 
-    X_RS_allPat = load_EEG_example()
-    SDI_surr = np.zeros((114, len(X_RS_allPat)))
-    for s in np.arange(len(X_RS_allPat)):
-        X_RS = X_RS_allPat[s]['X_RS'][:114,:,:]
-        zX_RS = scipy.stats.zscore(X_RS, axis=None)
-        XrandS = np.zeros(np.shape(X_RS))
-        ### reconstruct the data randomizing the GFT weights
-        ### calculate a randomized matrix of 1 and -1 (PHI) to generate surrogates for SDI analyses
-        PHI = np.zeros((nbSurr, np.shape(X_RS)[0], np.shape(X_RS)[0]))
+def surrogate_sdi(scU,  Vlow, Vhigh, nbSurr=1000, example=False): 
+    ### reconstruct the data randomizing the GFT weights
+    ### calculate a randomized matrix of 1 and -1 (PHI) to generate surrogates for SDI analyses
+    if example==True:
+        with h5py.File('/home/localadmin/Documents/CODES/data/PHI.mat', 'r') as f:
+            tmp = f['PHI'][()]
+        PHI = utils.extract_ctx_ROIs(tmp)
+        nbSurr = np.shape(PHI)[2]
+    else:
+        PHI = np.zeros((np.shape(scU)[0], np.shape(scU)[0], nbSurr))
         for n in np.arange(nbSurr):
             # %randomize sign of Fourier coefficients
-            PHIdiag= np.round(np.random.rand(np.shape(X_RS)[0]))
+            PHIdiag= np.round(np.random.rand(np.shape(scU)[0]))
             PHIdiag[np.where(PHIdiag==0)] = -1
-            PHI[n,:,:] = np.diag(PHIdiag)
-        for p in np.arange(np.shape(X_RS)[2]):
-            for n in np.arange(nbSurr):
+            PHI[:,:,n] = np.diag(PHIdiag)
+
+    X_RS_allPat = load_EEG_example()
+    SDI_surr = np.zeros((114, 19, len(X_RS_allPat)))
+    for s in np.arange(len(X_RS_allPat)):
+        for n in np.arange(19):
+            X_RS = X_RS_allPat[s]['X_RS'][:114,:,:]
+            zX_RS = scipy.stats.zscore(X_RS, axis=None)
+            XrandS = np.zeros(np.shape(X_RS))
+            PHI_curr = np.squeeze(PHI[:,:,n])
+            for p in np.arange(np.shape(X_RS)[2]):
                 zX_RS_curr = scipy.stats.zscore(zX_RS[:,:,p])
-                PHI_curr = np.squeeze(PHI[n,:,:])
                 XrandS[:,:,p] = scU@PHI_curr@np.transpose(scU)@zX_RS_curr
                 #  X_hat=M'X, normally reconstructed signal would be Xrecon=M*X_hat=MM'X, instead of M, M*PHI is V with randomized signs
-        X_c, X_d, N_c, N_d, SDI = filter_signal_with_harmonics(scU, XrandS, Vlow, Vhigh)
-        SDI_surr[:,s]=np.mean(N_d,1)/np.mean(N_c,1);#(np.shape(SDI_surr))
+            X_c, X_d, N_c, N_d, SDI = filter_signal_with_harmonics(scU, XrandS, Vlow, Vhigh)
+            SDI_surr[:,n,s]=np.mean(N_d,1)/np.mean(N_c,1);#(np.shape(SDI_surr))
+    
+    
     return SDI_surr, XrandS
 
 
 def select_significant_sdi(SDI, SDI_surr):
     ### initiation of max and min for threshold
+    print(np.shape(SDI))
     max_SDI_surr = np.zeros((np.shape(SDI)))
     min_SDI_surr = np.copy(max_SDI_surr)
     SDI_thr_max = np.copy(min_SDI_surr); SDI_thr_min = np.copy(min_SDI_surr)
@@ -147,9 +160,11 @@ def select_significant_sdi(SDI, SDI_surr):
     ### mean SDI
     mean_SDI = np.mean(SDI, axis=1)
     ### find threshold
-    for s in np.arange(np.shape(SDI)[1]):
-        max_SDI_surr[:,s] = np.max(SDI_surr[:,s])
-        min_SDI_surr[:,s] = np.min(SDI_surr[:,s])    
+    for s in np.arange(np.shape(SDI_surr)[2]):
+        #print(np.shape(max_SDI_surr[:,s]))
+        #print(np.shape(np.max(SDI_surr[:,:,s], axis=1)))
+        max_SDI_surr[:,s] = np.max(SDI_surr[:,:,s],axis=1)
+        min_SDI_surr[:,s] = np.min(SDI_surr[:,:,s],axis=1)    
         ### select significant SDI for each subject, across surrogates individual th, first screening
     for s in np.arange(np.shape(SDI)[1]):
         SDI_thr_max[:,s] = SDI[:,s] > max_SDI_surr[:,s]
