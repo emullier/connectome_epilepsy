@@ -262,7 +262,7 @@ def ind_normalized_lap(MatMat, EucMat, df, plot=False):
     return P, Q, Ln, An
 
 
-def cons_normalized_lap(Mat, EucDist, df, plot=False):
+def cons_normalized_lap(Mat, EucDist, plot=False):
     tmp = Mat
     diag_zeros = np.diag(np.diag(tmp))
     tmp = tmp - diag_zeros

@@ -113,37 +113,49 @@ def load_EEG_example():
     return X_RS_allPat
 
 
-def surrogate_sdi(scU,  Vlow, Vhigh, nbSurr=1000, example=False): 
+def surrogate_sdi(scU,  Vlow, Vhigh, config, nbSurr=1000, example=False): 
     X_RS_allPat = load_EEG_example()
     SDI_surr = np.zeros((114, 19, len(X_RS_allPat)))
     
     if example==True:
-        with h5py.File('/home/localadmin/Documents/CODES/data/PHI.mat', 'r') as f:
+        SDI_surr = np.zeros((118, 19, len(X_RS_allPat)))
+
+        with h5py.File(os.path.join(config["Parameters"]["example_dir"], 'PHI.mat'), 'r') as f:
             tmp = f['PHI'][()]
-        PHI = utils.extract_ctx_ROIs(tmp)
+        #PHI = utils.extract_ctx_ROIs(tmp)
+        PHI = tmp
         nbSurr = np.shape(PHI)[2]
 
-        GSP2_surr = sio.loadmat('/home/localadmin/Documents/CODES/data/results/data_GSP2_surr.mat')
+        GSP2_surr = sio.loadmat(os.path.join(config["Parameters"]["example_dir"],'data_GSP2_surr.mat'))
         GSP2_surr = GSP2_surr['data_GSP2_surr'][0]
 
         for s in np.arange(np.shape(GSP2_surr)[0]):
             sub = GSP2_surr[s][0]
             lat = GSP2_surr[s][1]
             surr = GSP2_surr[s][2][0][0][0]
-            idxs_ctxs = np.concatenate((np.arange(0,57), np.arange(60,117)))
-            SDI_surr[:,:,s] = surr[idxs_ctxs,:]
+            #idxs_ctxs = np.concatenate((np.arange(0,57), np.arange(60,117)))
+            #SDI_surr[:,:,s] = surr[idxs_ctxs,:]
+            SDI_surr[:,:,s] = surr
 
     else:
-        PHI = np.zeros((np.shape(scU)[0], np.shape(scU)[0], nbSurr))
-        for n in np.arange(nbSurr):
-            # %randomize sign of Fourier coefficients
-            PHIdiag= np.round(np.random.rand(np.shape(scU)[0]))
-            PHIdiag[np.where(PHIdiag==0)] = -1
-            PHI[:,:,n] = np.diag(PHIdiag)
+        #PHI = np.zeros((np.shape(scU)[0], np.shape(scU)[0], nbSurr))
+        #for n in np.arange(nbSurr):
+        #    # %randomize sign of Fourier coefficients
+        #    PHIdiag= np.round(np.random.rand(np.shape(scU)[0]))
+        #    PHIdiag[np.where(PHIdiag==0)] = -1
+        #    PHI[:,:,n] = np.diag(PHIdiag)
+        
+        with h5py.File(os.path.join(config["Parameters"]["example_dir"], 'PHI.mat'), 'r') as f:
+            tmp = f['PHI'][()]
+        PHI = utils.extract_ctx_ROIs(tmp)
+        nbSurr = np.shape(PHI)[2]
 
         for s in np.arange(len(X_RS_allPat)):
             for n in np.arange(19):
-                X_RS = X_RS_allPat[s]['X_RS'][:114,:,:]
+                X_RS = X_RS_allPat[s]['X_RS']
+                idxs_tmp = np.concatenate((np.arange(0,57), np.arange(59,116)))
+                #print(idxs_tmp)
+                X_RS = X_RS[idxs_tmp, :, :]
                 zX_RS = scipy.stats.zscore(X_RS, axis=None)
                 XrandS = np.zeros(np.shape(X_RS))
                 PHI_curr = np.squeeze(PHI[:,:,n])
@@ -153,7 +165,6 @@ def surrogate_sdi(scU,  Vlow, Vhigh, nbSurr=1000, example=False):
                     #  X_hat=M'X, normally reconstructed signal would be Xrecon=M*X_hat=MM'X, instead of M, M*PHI is V with randomized signs
                 X_c, X_d, N_c, N_d, SDI = filter_signal_with_harmonics(scU, XrandS, Vlow, Vhigh)
                 SDI_surr[:,n,s]=np.mean(N_d,1)/np.mean(N_c,1);#(np.shape(SDI_surr))
-    
     return SDI_surr
 
 
