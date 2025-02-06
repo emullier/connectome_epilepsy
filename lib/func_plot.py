@@ -173,8 +173,7 @@ def plot_rois_pyvista(roi_values, scale, config, center_at_zero=False, label='br
 
     labels_right = [elem.decode('utf-8') for elem in annot_right[2]]
     labels_left = [elem.decode('utf-8') for elem in annot_left[2]]
-    print(len(labels_right))
-    print(len(labels_left))
+
 
     desikan_atlas = Bunch(map_left=annot_left[0], map_right=annot_right[0])
 

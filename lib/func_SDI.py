@@ -43,7 +43,7 @@ def filter_signal_with_harmonics(sc,data,Vlow,Vhigh):
     ## Vhigh = high freq harmonics [ROI x HARM]
     X_hat = np.zeros(np.shape(data))
     X_c = np.copy(X_hat); X_d = np.copy(X_hat); 
-    N_d = np.zeros((np.shape(data)[0],np.shape(data)[2])); N_c = np.copy(N_d)
+    N_d = np.zeros((np.shape(data)[0],np.shape(data)[2])); N_c = np.copy(N_d); N_hat = np.copy(N_d)
     ## compute ESI HF/LF portions
     for ep in np.arange(np.shape(data)[2]):
         X_hat[:,:,ep] = sc @ data[:,:,ep]
@@ -53,9 +53,12 @@ def filter_signal_with_harmonics(sc,data,Vlow,Vhigh):
         for r in np.arange(np.shape(data)[0]):
             N_c[r,ep]=np.linalg.norm(X_c[r,:,ep])
             N_d[r,ep]=np.linalg.norm(X_d[r,:,ep])
+            N_hat[r,ep]=np.linalg.norm(X_hat[r,:,ep])
+            
     ## STRUCTURAL DECOUPLING INDEX
     SDI=np.mean(N_d,1)/np.mean(N_c,1); #emipirical individual SDI
-    return X_c, X_d, N_c, N_d, SDI
+    SD_hat = np.mean(N_hat, 1)
+    return SD_hat, X_c, X_d, N_c, N_d, SDI
 
 def getBD(zX_RS,X_c,X_d):
     ## LF/HF content
@@ -85,11 +88,11 @@ def compute_SDI(X_RS, scU):
     zX_RS = scipy.stats.zscore(X_RS, axis=None)
     [PSD,NN, Vlow, Vhigh] = get_cutoff_freq(scU, zX_RS); #split harmonics in high and low frequency and get PSD
     ## get the part of the signal that is COUPLED and DECOUPLED from the structure
-    X_c, X_d, N_c, N_d, SDI = filter_signal_with_harmonics(scU,zX_RS,Vlow,Vhigh)
+    SD_hat, X_c, X_d, N_c, N_d, SDI = filter_signal_with_harmonics(scU,zX_RS,Vlow,Vhigh)
     ## normalise X_c and X_d and get Broadcasting Direction
     BD, X_c_norm, X_d_norm = getBD(zX_RS,X_c,X_d)
     #SDI=np.mean(N_d,1)/np.mean(N_c,1);#(np.shape(SDI_surr))
-    return SDI, X_c_norm, X_d_norm
+    return SDI, X_c, X_d, SD_hat
 
 def load_EEG_example():
     func_path = 'data/func_data.mat'
@@ -152,6 +155,7 @@ def surrogate_sdi(scU,  Vlow, Vhigh, config, nbSurr=1000, example=False):
 
         for s in np.arange(len(X_RS_allPat)):
             for n in np.arange(19):
+                print('sub-%d, n%d'%(s,n))
                 X_RS = X_RS_allPat[s]['X_RS']
                 idxs_tmp = np.concatenate((np.arange(0,57), np.arange(59,116)))
                 #print(idxs_tmp)
@@ -163,7 +167,7 @@ def surrogate_sdi(scU,  Vlow, Vhigh, config, nbSurr=1000, example=False):
                     zX_RS_curr = scipy.stats.zscore(zX_RS[:,:,p])
                     XrandS[:,:,p] = scU@PHI_curr@np.transpose(scU)@zX_RS_curr
                     #  X_hat=M'X, normally reconstructed signal would be Xrecon=M*X_hat=MM'X, instead of M, M*PHI is V with randomized signs
-                X_c, X_d, N_c, N_d, SDI = filter_signal_with_harmonics(scU, XrandS, Vlow, Vhigh)
+                SD_hat, X_c, X_d, N_c, N_d, SDI = filter_signal_with_harmonics(scU, XrandS, Vlow, Vhigh)
                 SDI_surr[:,n,s]=np.mean(N_d,1)/np.mean(N_c,1);#(np.shape(SDI_surr))
     return SDI_surr
 

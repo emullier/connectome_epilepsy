@@ -35,9 +35,15 @@ def load_matrices(df_info, data_dir, scale, metric):
                     mat_path = os.path.join(data_dir, sub, 'ses-SPUM', 'dwi','%s_ses-SPUM_atlas-L2018_res-scale%d_conndata-network_connectivity.mat'%(sub,scale)) 
         if 'struct_data' in sub:
             SC  = sio.loadmat('./data/Connectome_scale-%d.mat'%scale)['num']
+            print(np.shape(SC))
             roi_info_path = 'data/label/roi_info.xlsx'
             roi_info = pd.read_excel(roi_info_path, sheet_name=f'SCALE 2')
             cort_rois = np.where(roi_info['Structure'] == 'cort')[0]
+            #print(len(cort_rois))
+            #print((cort_rois))           
+            #cort_rois = np.concatenate((np.arange(0,57), np.arange(59,116)))
+            #print(len(cort_rois))
+            #print((cort_rois)) 
             SC = SC[cort_rois,:]; SC = SC[:, cort_rois]
             matMetric = SC
             x = np.asarray(roi_info['x-pos'])[cort_rois]
