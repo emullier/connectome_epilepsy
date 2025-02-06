@@ -23,15 +23,13 @@
             "F"
         ],
         "group": [ 
-            "HC",
-            "EP"
+            "HC"
         ],  
         "dwi": [
-            "multishell", 
-            "dsi"
+            "multishell", "dsi"
         ],
         "processing": {
-              "example": "Individual_Connectomes"
+            "shore":"cmp-3.1.0_shore"
         }
     },
     "BIAS": {

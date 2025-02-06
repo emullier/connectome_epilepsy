@@ -65,9 +65,15 @@ def consensus(MatMat, processings,  df_dict, EucMat, nbins):
     fig, axs = plt.subplots(len(processings),3)
     G_dist = {}; G_unif = {}; EucDist = {}
     for p,proc in enumerate(processings):
-        Mat = MatMat[proc]
-        df = df_dict[proc]
-        EucDist[proc] = np.average(EucMat[proc], axis=2)
+        try:
+            Mat = MatMat[proc]
+            df = df_dict[proc]
+            EucMat = EucMat[proc]
+        except:
+            Mat = MatMat
+            df = df_dict
+        
+        EucDist[proc] = np.average(EucMat, axis=2)
         hemii = np.ones(np.shape(EucDist[proc])[0])
         #if np.shape(EucDist)[0]%2==0:
         hemii[int(len(hemii)/2):] = 2
@@ -276,42 +282,38 @@ def cons_normalized_lap(Mat, EucDist, plot=False):
 def rotation_procrustes(Q_all, P_all,  plot=False, p=''):
     if np.shape(Q_all)[2]>1:
         Q_all_rotated = np.zeros(np.shape(Q_all))
+        Q_all_new = np.zeros(np.shape(Q_all))
         Q_all_rotated[:,:,0] = Q_all[:,:,0]
         R_all = np.zeros(np.shape(Q_all))
         scale_R = np.zeros(np.shape(Q_all)[2])
         Q_all[np.isnan(Q_all)]=0; Q_all[np.isinf(Q_all)]=0
 
         for i in range(1, np.shape(Q_all)[2]):
-            _, Q_all_rotated[:,:,i], disparity = scipy.spatial.procrustes(Q_all[:,:,0], Q_all[:,:,i])
-            R_all[:,:,i], _ = scipy.linalg.orthogonal_procrustes(Q_all[:,:,0], Q_all[:,:,i])    
+            Q_all_new[:,:,i], Q_all_rotated[:,:,i], disparity = scipy.spatial.procrustes(Q_all[:,:,0], Q_all[:,:,i])
         ### take the average of the rotated eigenvectors
-        Q_all_rotated[np.isnan(Q_all_rotated)] = 1e-20
         Q_mean_rotated = np.mean(Q_all_rotated,axis=2)
         ###second round of Procrustes transformation
         P_all_rotated = np.zeros((np.shape(Q_all)[0], np.shape(Q_all)[2]))
         for i in range(1, np.shape(Q_all)[2]):
-            _, Q_all_rotated[:,:,i], disparity = scipy.spatial.procrustes(Q_mean_rotated, Q_all[:,:,i])
-            R, scale_R[i] = scipy.linalg.orthogonal_procrustes(Q_mean_rotated, Q_all[:,:,i])    
-            eig_rotated = R@Q_all[:,:,i]@np.diag(P_all[:,i])
-            P_all_rotated[:,i] = np.sqrt(np.sum(np.multiply(eig_rotated,eig_rotated),axis=0))
-        
+            Q_all[:,:,i], Q_all_rotated[:,:,i], disparity = scipy.spatial.procrustes(Q_mean_rotated, Q_all[:,:,i])
+            P_all_rotated[:,i] = P_all[:,i]        
             Q_mean_rotated = np.mean(Q_all_rotated,axis=2)
             P_mean = np.mean(P_all,axis=1); P_mean_rotated = np.mean(P_all_rotated, axis=1)
 
 
         if plot==True:
-            fig, ax = plt.subplots(2,3, figsize=(10,3))            
+            fig, ax = plt.subplots(2,2, figsize=(10,3))            
             ax[0,0].imshow(Q_mean_rotated,  extent = [0,np.shape(Q_all)[2],0,np.shape(Q_all)[2]], aspect='auto', cmap='jet', vmin = -0.1,vmax=0.1)
             ax[0,0].set_title('Average of rotated eigenvectors');  ax[0,0].set_aspect('equal')
             cax1 = ax[1,0].imshow(np.mean(Q_all, axis=2),  extent = [0,np.shape(Q_all)[2],0,np.shape(Q_all)[2]], aspect='auto', cmap='jet', vmin = -0.1,vmax=0.1)
             ax[1,0].set_title('Average of original eigenvectors'); ax[1,0].set_aspect('equal')
             
-            gs = ax[0, 2].get_gridspec()
-            for a in [ax[0, 2], ax[1, 2]]:
-                a.remove()
-            ax_big = fig.add_subplot(gs[:, 2])
-            ax_big.plot(range(np.shape(Q_all)[0]), P_mean, range(np.shape(Q_all)[0]), P_mean_rotated)
-            ax_big.set_title('Original and Rotated Eigenvectors '); ax_big.set_xlabel('eigenvalue index'); ax_big.set_ylabel('eigenvalues'); ax_big.legend(['Original Eigenvalues', 'Rotated Eigenvalues'])
+            #gs = ax[0, 2].get_gridspec()
+            #for a in [ax[0, 2], ax[1, 2]]:
+            #    a.remove()
+            #ax_big = fig.add_subplot(gs[:, 2])
+            #ax_big.plot(range(np.shape(Q_all)[0]), P_mean, range(np.shape(Q_all)[0]), P_mean_rotated)
+            #ax_big.set_title('Original and Rotated Eigenvectors '); ax_big.set_xlabel('eigenvalue index'); ax_big.set_ylabel('eigenvalues'); ax_big.legend(['Original Eigenvalues', 'Rotated Eigenvalues'])
 
         A = Q_all[:,:,0].T; B = Q_all[:,:,1].T; A_cos = np.dot(A, B.T)
         if plot==True:
@@ -332,6 +334,59 @@ def rotation_procrustes(Q_all, P_all,  plot=False, p=''):
     
     return Q_all_rotated, P_all_rotated, R_all, scale_R
 
+def orthogonal_rotation_procrustes(Q_all, P_all,  plot=False, p=''):
+    if np.shape(Q_all)[2]>1:
+        Q_all_rotated = np.zeros(np.shape(Q_all))
+        Q_all_new = np.zeros(np.shape(Q_all))
+        Q_all_rotated[:,:,0] = Q_all[:,:,0]
+        R_all = np.zeros(np.shape(Q_all))
+        scale_R = np.zeros(np.shape(Q_all)[2])
+        Q_all[np.isnan(Q_all)]=0; Q_all[np.isinf(Q_all)]=0
+
+        for i in range(1, np.shape(Q_all)[2]):
+            R_all[:,:,i], _ = scipy.linalg.orthogonal_procrustes(Q_all[:,:,0], Q_all[:,:,i])
+            Q_all_rotated[:,:,i] = Q_all[:,:,i] @ R_all[:,:,i]    
+        ### take the average of the rotated eigenvectors
+        Q_mean_rotated = np.mean(Q_all_rotated,axis=2)
+        ###second round of Procrustes transformation
+        P_all_rotated = np.zeros((np.shape(Q_all)[0], np.shape(Q_all)[2]))
+        for i in range(1, np.shape(Q_all)[2]):
+            R, _ = scipy.linalg.orthogonal_procrustes(Q_mean_rotated, Q_all[:,:,i])
+            Q_all_rotated[:,:,i]  = Q_all[:,:,i] @ R
+            #eig_rotated = R@Q_all[:,:,i]@np.diag(P_all[:,i])
+            #P_all_rotated[:,i] = np.sqrt(np.sum(np.multiply(eig_rotated,eig_rotated),axis=0))
+            P_all_rotated[:,i] = P_all[:,i]
+
+        
+            Q_mean_rotated = np.mean(Q_all_rotated,axis=2)
+            P_mean = np.mean(P_all,axis=1); P_mean_rotated = np.mean(P_all_rotated, axis=1)
+
+
+        if plot==True:
+            fig, ax = plt.subplots(2,2, figsize=(10,3))            
+            ax[0,0].imshow(Q_mean_rotated,  extent = [0,np.shape(Q_all)[2],0,np.shape(Q_all)[2]], aspect='auto', cmap='jet', vmin = -0.1,vmax=0.1)
+            ax[0,0].set_title('Average of rotated eigenvectors');  ax[0,0].set_aspect('equal')
+            cax1 = ax[1,0].imshow(np.mean(Q_all, axis=2),  extent = [0,np.shape(Q_all)[2],0,np.shape(Q_all)[2]], aspect='auto', cmap='jet', vmin = -0.1,vmax=0.1)
+            ax[1,0].set_title('Average of original eigenvectors'); ax[1,0].set_aspect('equal')
+            
+        A = Q_all[:,:,0].T; B = Q_all[:,:,1].T; A_cos = np.dot(A, B.T)
+        if plot==True:
+            ax[0,1].imshow(A_cos,cmap = 'seismic',vmin = -1,vmax=1)
+            ax[0,1].set_title('Cosine Similarity Before Rotation'); ax[0,1].set_xlabel('Subject 1 eigenvectors'), ax[0,1].set_ylabel('Subject 2 eigenvectors')
+        
+        A = Q_all_rotated[:,:,0].T; B = Q_all_rotated[:,:,1].T; A_cos = np.dot(A,B.T)
+        if plot==True:
+            ax[1,1].imshow(A_cos,cmap = 'seismic', vmin = -1,vmax=1); ax[1,1].set_title('Cosine Similarity After Rotation'); ax[1,1].set_xlabel('Subject 1 eigenvectors'); ax[1,1].set_ylabel('Subject 2 eigenvectors')        
+            fig.suptitle('%s'%p); plt.show(block=False)
+            plt.savefig('./public/static/images/RotationProcrustes%s.png'%p)
+    
+    else:
+        Q_all_rotated = Q_all
+        P_all_rotated = P_all
+        R_all = 0; scale_R = 0
+        print('Not Procrustes alignment performed')
+    
+    return Q_all_rotated, P_all_rotated, R_all, scale_R
 
 def reconstruct_SC(MatMat, df, P, Q, k=None, plot=False, p=''):
     Ln_group_recon = np.zeros(np.shape(MatMat))

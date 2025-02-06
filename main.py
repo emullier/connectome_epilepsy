@@ -10,7 +10,6 @@ import lib.func_SDI as sdi
 from lib.func_plot import plot_rois, plot_rois_pyvista
 
 
-
 def load_data(config):
     ''' Log File '''
     logging.basicConfig(filename='%s/log_file.log'% config['Parameters']['output_dir'], level=logging.INFO,
@@ -98,39 +97,55 @@ def run_analysis(config, MatMat, EucMat, dict_df, comp_parc, nbProcs):
     logging.info('Consensus Matrices')
     G_dist, G_unif, EucDist = ML.consensus(MatMat, config["Parameters"]["processing"],  dict_df, EucMat, config["CONSENSUS"]["nbins"])
     G_dist_wei, G_unif_wei = reading.save_consensus(MatMat, config["Parameters"]["metric"], G_dist, G_unif, config["Parameters"]["output_dir"], config["Parameters"]["processing"])
-    
+    np.save('tests/MatMat_main', MatMat[procs[0]])
     
     logging.info("Generate harmonics from the consensus")
-    P_ind={}; Q_ind={}; Ln_ind = {}; An_ind= {}; SDI = {}; SDI_surr = {}
+    P_ind={}; Q_ind={}; Q_all_rotated={}; P_all_rotated={}; scale_R={}; R_all={}; Mat_recon={}; Ln_ind = {}; An_ind= {}
     for p,proc in enumerate(procs):
     
         ### Generate the harmonics
         G_dist[proc] = MatMat[proc][:,:,1]; 
+        #np.save('tests/Gdist_main', G_dist[proc])
         P_ind[proc], Q_ind[proc], Ln_ind[proc], An_ind[proc] = ML.cons_normalized_lap(G_dist[proc], EucDist[proc],  plot=False)
+        np.save(os.path.join(config["Parameters"]["output_dir"], 'sdi','Gdist_th3_%s_main'%(proc)), G_dist[proc])
+        #Q_all_rotated[proc], P_all_rotated[proc], R_all[proc], scale_R[proc] = ML.rotation_procrustes(Q_ind[proc], P_ind[proc], plot=True, p='%s'%proc)
+        np.save(os.path.join(config["Parameters"]["output_dir"], 'epilepsy','Q_ind_%s_main'%(proc)), Q_ind[proc])
+
+        #eig=1
+        #plot_rois_pyvista(Q_ind[:,eig], config["Parameters"]["scale"], config, vmin=-2.5, vmax=2.5, label='NotRotated%d'%eig)
+        #plot_rois_pyvista(Q_all_rotated[:,eig], config["Parameters"]["scale"], config, vmin=-2.5, vmax=2.5, label='Rotated%d'%eig)
+
         if np.shape(Q_ind[proc])!=114:
             Q_ind[proc] = utils.extract_ctx_ROIs(Q_ind[proc])
                     
         ### Estimate SDI
         SDI_tmp = np.zeros((114, len(X_RS_allPat)))
-        ls_lat = []
+        ls_lat = []; SDI={}; SDI_surr={}
         for p in np.arange(len(X_RS_allPat)):
             X_RS = X_RS_allPat[p]['X_RS']
             ls_lat.append(X_RS_allPat[p]['lat'][0])
             idx_ctx = np.concatenate((np.arange(0,57), np.arange(59,116)))
             PSD,NN, Vlow, Vhigh = sdi.get_cutoff_freq(Q_ind[proc], X_RS[idx_ctx,:,:])
-            SDI_tmp[:,p], X_c_norm, X_d_norm = sdi.compute_SDI(X_RS[idx_ctx,:,:], Q_ind[proc])
+            SDI_tmp[:,p], X_c_norm, X_d_norm, SD_hat = sdi.compute_SDI(X_RS[idx_ctx,:,:], Q_ind[proc])
         ls_lat = np.array(ls_lat)
         SDI[proc] = SDI_tmp
+        np.save(os.path.join(config["Parameters"]["output_dir"], 'sdi', 'Qind_th3_%s_main'%(proc)), Q_ind[proc])
 
+        #np.save('tests/SDI_main', SDI_tmp)
+
+
+        print('ok')
         ### Surrogate part
-        SDI_surr[proc] = sdi.surrogate_sdi(Q_ind[proc], Vlow, Vhigh, config,  nbSurr=1000, example=False) # Generate the surrogate 
+        SDI_surr[proc] = sdi.surrogate_sdi(Q_ind[proc], Vlow, Vhigh, config,  nbSurr=10, example=False) # Generate the surrogate 
+        print('ok2')
     
         fig,ax = plt.subplots(1,2)
         for l, lat in enumerate(np.unique(ls_lat)):
             ### not related here, the functional signales are always the same, they should be loaded all the time the same way
             SDI_tmp = SDI[proc]; SDI_surr_tmp = SDI_surr[proc]
             #idxs_tmp = np.concatenate((np.arange(0,57), np.arange(59, 116)))
-            #SDI_surr_tmp = SDI_surr_tmp[idxs_tmp,:,:]
+            #SDI_surr_tmp = SDI_surr_tmp[idxs_tmp,:,:]; 
+            #print(np.shape(SDI_surr_tmp))
             surr_thresh = sdi.select_significant_sdi(SDI_tmp[:,np.where(ls_lat==lat)[0]], SDI_surr_tmp[:,:,np.where(ls_lat==lat)[0]])
             thr = 1
             nbROIsig = []; ls_th = []
@@ -142,9 +157,12 @@ def run_analysis(config, MatMat, EucMat, dict_df, comp_parc, nbProcs):
                 #tmp = surr_thresh[t]['mean_SDI']
                 nbROIsig.append(len(np.where(np.abs(surr_thresh[t]['SDI_sig']))[0]))
                 #plot_rois(tmp, config["Parameters"]["scale"], config, vmin=-1, vmax=1, label='SDI_Sig%d'%(surr_thresh[0]['threshold']))
-                #plot_rois_pyvista(tmp, config["Parameters"]["scale"], config, vmin=-2.5, vmax=2.5, label='SDI_th%d_%s'%(surr_thresh[t]['threshold'], lat))
                 plot_rois_pyvista(tmp, config["Parameters"]["scale"], config, vmin=-1, vmax=1, label='SDI_th%d_%s_%s'%(surr_thresh[t]['threshold'], lat, proc))
-
+                #plot_rois_pyvista(tmp, config["Parameters"]["scale"], config, vmin=-1, vmax=1, label='SDI_th%d_%s_%s'%(surr_thresh[t]['threshold'], lat, proc))
+                if th==3:
+                    tmp = surr_thresh[t]['mean_SDI']
+                    #np.save('tests/th3_%s_main'%lat, tmp)
+                    np.save(os.path.join(config["Parameters"]["output_dir"], 'sdi','th3_%s_%s_main'%(lat,proc)), tmp)
 
             ax[l].plot(np.array(ls_th), np.array(nbROIsig))
             ax[l].set_xlabel('Threshold #Subs'); ax[l].set_ylabel('#ROIs with significant SDI')
