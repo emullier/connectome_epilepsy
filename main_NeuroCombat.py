@@ -51,7 +51,6 @@ sex_m[np.where(sex_m=='F')] = 0
 
 covars['SITE'] = site; covars['AGE'] = age; covars['SEX_M'] = sex_m
 
-    
 ### Convert the dataframe into an array
 my_data = np.array(df_Comb)   
 my_data = np.transpose(my_data) 
@@ -79,14 +78,17 @@ plt.grid(axis='y', linestyle='--', alpha=0.7)
 orig_legend = mlines.Line2D([], [], color='#333333', label='Original', linewidth=6)
 harm_legend = mlines.Line2D([], [], color='#D4AF37', label='Harmonized', linewidth=6)
 plt.legend(handles=[orig_legend, harm_legend], loc='upper right')
-plt.show()
-
+#plt.show()
 
 # Building back SC matrices after harmonization
 reconstructed_Mat = np.zeros_like(MatMat[proc])
-print(np.shape(reconstructed_Mat))
 for s,sub in enumerate(df_info['sub']):
-    print(np.shape(np.array(df_Comb[sub])))
-    print(np.shape(reconstructed_Mat[lower_triangle_indices,s]))
-    #reconstructed_Mat[lower_triangle_indices,s] = df_Comb[sub]
-    #reconstructed_Mat.T[lower_triangle_indices,s] = df_Comb[sub]
+    tmpMat = np.zeros(np.shape(Mat))
+    lower_triangle_indices = np.tril_indices(Mat.shape[0], k=-1)
+    tmpMat[lower_triangle_indices] = df_Comb[sub]
+    reconstructed_Mat[:,:,s] = tmpMat + tmpMat.T 
+
+plt.figure()
+plt.imshow(reconstructed_Mat[:,:,0])
+plt.show()
+    
