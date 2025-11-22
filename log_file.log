@@ -1,8 +1,0 @@
-2024-09-17 11:46:48 - Processing example selected
-2024-09-17 11:46:48 - Number of subjects with processing example: 1
-2024-09-17 11:46:52 - Generate the GSP pipeline for each processing individually 
-
-2024-09-17 11:46:52 - '''''''''
-2024-09-17 11:46:52 - Load EEG example data for SDI
-2024-09-17 11:46:52 - Consensus Matrices
-2024-09-17 11:46:53 - Generate harmonics from the consensus

@@ -30,6 +30,7 @@ def fcn_groups_bin(A,dist,hemiid,nbins):
     distbins = np.linspace(np.min(np.nonzero(dist)),np.max(np.nonzero(dist)), nbins+1)
     distbins[-1] = distbins[-1] + 1    
 
+    
     n, _, nsub = A.shape  # number of nodes (n) and subjects (nsub)
     C = np.sum(A > 0, axis=2)  # consistency   ### C = np.sum(np.where(A>.3))  ?
     W = np.sum(A, axis=2) / C  # average weight
@@ -82,9 +83,26 @@ def fcn_groups_bin(A,dist,hemiid,nbins):
     G = G + G.T
     G[G > 0] = 1 
     
+    initial_weights = np.mean(A, axis=2)  # shape (118, 118)
+    final_weights  = initial_weights
+    #rows, cols = np.where(G == 1)
+    #pooled_weights = initial_weights[rows, cols]
+    #pooled_weights_flat = pooled_weights.flatten()
+    #pooled_weights_flat_sorted = np.sort(pooled_weights_flat)
+    #min_w, max_w = pooled_weights_flat_sorted.min(), pooled_weights_flat_sorted.max()
+    #normalized_initial = (pooled_weights_flat_sorted - min_w) / (max_w - min_w)
+    #reassigned_weights = np.interp(normalized_initial,np.linspace(0, 1, len(pooled_weights_flat_sorted)), pooled_weights_flat_sorted)
+    #final_weights = np.zeros_like(initial_weights)
+    #final_weights[rows, cols] = reassigned_weights
+    
+    #print('Number of nonzero final weights:', np.count_nonzero(final_weights))  # Should be 2680
+    #print('Expected retained connections:', np.sum(G))  # Should be 2680
+    G = G* final_weights   
+    
     Gc = np.sum(Gc, axis=2)
     Gc = Gc + Gc.T
     Gc[Gc > 0] = 1 
+    Gc = Gc * final_weights
     
     return G, Gc
 
