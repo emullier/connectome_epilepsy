@@ -4,3 +4,7 @@
 *.nii.gz
 *.npy
 *.fig
+DATA/*
+DEMOGRAPHIC/*
+FIGURES/*
+OUTPUT/*
