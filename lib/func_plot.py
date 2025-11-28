@@ -58,8 +58,8 @@ def my_box_plot(data, ax, colors, labels):
 def plot_rois(roi_values, scale,  config, center_at_zero=False, label='brain',
                   cmap='coolwarm', vmin=None, vmax=None, fmt='png'):
 
-    annots = [os.path.join('data','label','rh.lausanne2008.scale{}.annot'.format(scale)),
-              os.path.join('data','label','lh.lausanne2008.scale{}.annot'.format(scale))]
+    annots = [os.path.join('DATA','label','rh.lausanne2008.scale{}.annot'.format(scale)),
+              os.path.join('DATA','label','lh.lausanne2008.scale{}.annot'.format(scale))]
 
     annot_right = nb.freesurfer.read_annot(annots[0])
     annot_left = nb.freesurfer.read_annot(annots[1])
@@ -172,8 +172,8 @@ def plot_rois_pyvista(roi_values, scale, out_dir, center_at_zero=False, label='b
     roi_values = roi_values[cort_rois]
     
     annots = [
-        os.path.join('data', 'label', f'rh.lausanne2008.scale{scale}.annot'),
-        os.path.join('data', 'label', f'lh.lausanne2008.scale{scale}.annot')]
+        os.path.join('DATA', 'label', f'rh.lausanne2008.scale{scale}.annot'),
+        os.path.join('DATA', 'label', f'lh.lausanne2008.scale{scale}.annot')]
 
     annot_right = nb.freesurfer.read_annot(annots[0])
     annot_left = nb.freesurfer.read_annot(annots[1])
@@ -297,8 +297,8 @@ def plot_rois_pyvista_superior(roi_values, scale, out_dir, center_at_zero=False,
     roi_values = roi_values[cort_rois]
     
     annots = [
-        os.path.join('data', 'label', f'rh.lausanne2008.scale{scale}.annot'),
-        os.path.join('data', 'label', f'lh.lausanne2008.scale{scale}.annot')]
+        os.path.join('DATA', 'label', f'rh.lausanne2008.scale{scale}.annot'),
+        os.path.join('DATA', 'label', f'lh.lausanne2008.scale{scale}.annot')]
 
     annot_right = nb.freesurfer.read_annot(annots[0])
     annot_left = nb.freesurfer.read_annot(annots[1])

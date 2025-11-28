@@ -3,7 +3,17 @@
 ''' This script reproduces the results of the paper (Rigoni,2023), as a validation of 
 the functions recreated in python from the original matlab code provided by the authors.
 
-Last modified: EM, 20.11.2025 
+- Fig 1: Comparison Consensus connectome from Isotta paper to HC consensus connectome from DSI GVA data
+- Fig 2: Normalized energy of coupled/decoupled signals in RTLE and LTLE patients
+- Fig 3: Cutoff frequencies comparison between HC consensus and Isotta consensus
+- Fig 4: Number of significant ROIs for different thresholds in RTLE and LTLE
+
+Missing:
+- Table of significant ROIs in RTLE and LTLE patients as in 02_SDI_consensus_pipeline.py
+- SDI visualization on the brain ? Check in the saved figures
+- Boxplot for significant ROIs (Fig 5 in the original paper)
+
+Last modified: EM, 25.11.2025
 Created: 11.03.2025, Emeline Mullier
 University of Geneva & Lausanne University Hospital '''
 
@@ -25,7 +35,7 @@ for l, lateralization in enumerate(ls_lateralization):
 
     #lateralization="LT"
     data_path = "DATA/Connectome_scale-2.mat"
-    example_dir = r"C:\\Users\\emeli\\Documents\\CHUV\\TEST_RETEST_DSI_microstructure\\SFcoupling_IED_GSP\\data\\data"
+    example_dir = "DATA/EEG"
     infoGVA_path = './DEMOGRAPHIC/info_dsi_multishell_merged_csv.csv'
     scale = 2
 
@@ -38,9 +48,11 @@ for l, lateralization in enumerate(ls_lateralization):
     matMetric = matMetric[cort_rois,:]; matMetric = matMetric[:, cort_rois]
     consensus = matMetric
     ### which one is used in Isotta paper
-    EucDist = np.load("DATA/EucMat_HC_DSI_number_of_fibers.npy")
+    EucDist = np.load("DATA/EucMat/EucMat_HC_DSI_number_of_fibers.npy")
 
     print("Generate harmonics from the consensus")
+    if not os.path.exists('./OUTPUT/INDvsCTRL'):
+        os.makedirs('./OUTPUT/INDvsCTRL')
     ### Generate the harmonics
     P_ind, Q_ind, Ln_ind, An_ind = gsp.cons_normalized_lap(consensus, EucDist,  plot=False)
     np.save('./OUTPUT/INDvsCTRL/Q_ind_Iso_%s.npy'%(lateralization), Q_ind)
@@ -115,14 +127,18 @@ for l, lateralization in enumerate(ls_lateralization):
         nbROIs_sig.append(len(np.where(np.abs(surr_thresh[p]['SDI_sig']))[0]))
     np.save('./OUTPUT/INDvsCTRL/nbROIs_sig_Iso_%s.npy'%(lateralization), nbROIs_sig)
 
+    
+    if not os.path.exists('./FIGURES/INDvsCTRL'):
+        os.makedirs('./FIGURES/INDvsCTRL')
     thr = 2
     plot_rois_pyvista(surr_thresh[thr]['mean_SDI']*surr_thresh[thr]['SDI_sig'], scale, './FIGURES/INDvsCTRL', label='SDImean_thr%d_Iso_%s'%(thr, lateralization))
-    plt.show()
+    thr = 5
+    plot_rois_pyvista(surr_thresh[thr]['mean_SDI']*surr_thresh[thr]['SDI_sig'], scale, './FIGURES/INDvsCTRL', label='SDImean_thr%d_Iso_%s'%(thr, lateralization))
 
 
 ### Plot the consensus connectome
 ########################################
-consensus_HC = np.load("DATA/matMetric_HC_DSI_number_of_fibers.npy")
+consensus_HC = np.load("DATA/SC/matMetric_HC_DSI_number_of_fibers.npy")
 consensus_HC = np.mean(consensus_HC, axis=2)
 data_path = "DATA/Connectome_scale-2.mat"
 matMetric = sio.loadmat(data_path)
@@ -137,7 +153,7 @@ cons_ind_vec = consensus_ind.flatten()
 idxs = np.where((cons_HC_vec>0)*(cons_ind_vec>0))[0]
 fig, axs = plt.subplots(1,3, figsize=(10,10), constrained_layout=True)
 axs[0].imshow(consensus_HC); axs[0].set_title('Consensus HC DSI GVA \n #streamlines %d'% np.sum(consensus_HC))
-axs[1].imshow(consensus_ind); axs[1].set_title('Consensus EP RT \n #streamlines %d'% np.sum(consensus_ind))
+axs[1].imshow(consensus_ind); axs[1].set_title('Consensus Ind. Iso \n #streamlines %d'% np.sum(consensus_ind))
 axs[2].scatter(cons_HC_vec[idxs], cons_ind_vec[idxs]); axs[2].set_xlabel('HC'); axs[2].set_ylabel('Ind.')
 
 
@@ -159,19 +175,21 @@ ax[1].set_xlabel('Time (s)'); ax[1].set_ylabel('Normalized energy'); ax[1].legen
 
 ### Plot the cutoff frequencies
 ######################################
+if not os.path.exists('./FIGURES/INDvsCTRL'):
+    os.makedirs('./FIGURES/INDvsCTRL')
 cutoff_HC = np.load('./OUTPUT/EPvsCTRL/cutoff_%s_HC_dsi.npy'%metric)
-cutoff_EP = np.load('./OUTPUT/INDvsCTRL/cutoff_Iso.npy')
+cutoff_IND = np.load('./OUTPUT/INDvsCTRL/cutoff_Iso.npy')
 
-stat, p_mwu = scipy.stats.mannwhitneyu(cutoff_HC, cutoff_EP, alternative='two-sided')
-print(f"HC - EP \n Mann-Whitney U test statistic = {stat:.3f}, p-value = {p_mwu:.3g}")
-r_value, p_value = scipy.stats.pearsonr(cutoff_HC, cutoff_EP)
+stat, p_mwu = scipy.stats.mannwhitneyu(cutoff_HC, cutoff_IND, alternative='two-sided')
+print(f"HC - IND \n Mann-Whitney U test statistic = {stat:.3f}, p-value = {p_mwu:.3g}")
+r_value, p_value = scipy.stats.pearsonr(cutoff_HC, cutoff_IND)
 
 fig, ax = plt.subplots(1, 2, figsize=(10, 4))
-ax[0].scatter(cutoff_HC, cutoff_EP, c='tab:blue', alpha=0.6, edgecolors='w', s=60)
+ax[0].scatter(cutoff_HC, cutoff_IND, c='tab:blue', alpha=0.6, edgecolors='w', s=60)
 ax[0].set_title(f"Pearson r = {r_value:.3f}, p = {p_value:.3f}", fontsize=10)
 ax[0].set_xlabel('Cutoff frequency HC'); ax[0].set_ylabel('Cutoff frequency Ind.'); ax[0].grid(True)
-sns.boxplot(data=[cutoff_HC, cutoff_EP], ax=ax[1], width=0.5, palette='colorblind')
-sns.stripplot(data=[cutoff_HC, cutoff_EP], ax=ax[1], color='black', size=4, jitter=True, dodge=True)
+sns.boxplot(data=[cutoff_HC, cutoff_IND], ax=ax[1], width=0.5, palette='colorblind')
+sns.stripplot(data=[cutoff_HC, cutoff_IND], ax=ax[1], color='black', size=4, jitter=True, dodge=True)
 ax[1].set_xticks([0, 1])
 ax[1].set_xticklabels(['HC Consensus', 'Ind. Consensus'])
 ax[1].set_ylabel('Cutoff frequency')
@@ -199,21 +217,21 @@ for i, y_value in enumerate(nbROIs_sig_LT):
 ax.set_xlabel('Threshold #Subs'); ax.set_ylabel('#ROIs with significant SDI')
 ax.grid('on', alpha=.2); ax.legend()
 ax.set_title('Number of significant ROIs for each threshold')
-plt.show()
+
 
 ### Plot the harmonics
 ##############################
-Qind_HC_RT = np.load('./OUTPUT/EPvsCTRL/Q_ind_HC_dsi_RT.npy')
-Qind_HC_LT = np.load('./OUTPUT/EPvsCTRL/Q_ind_HC_dsi_LT.npy')
-Qind_EP_RT = np.load('./OUTPUT/INDvsCTRL/Q_ind_Iso_RT.npy')
-Qind_EP_LT = np.load('./OUTPUT/INDvsCTRL/Q_ind_Iso_LT.npy')
+Qind_HC_RT = np.load('./OUTPUT/EPvsCTRL/Q_ind_%s_HC_dsi_RT.npy'%metric)
+Qind_HC_LT = np.load('./OUTPUT/EPvsCTRL/Q_ind_%s_HC_dsi_LT.npy'%metric)
+Qind_IND_RT = np.load('./OUTPUT/INDvsCTRL/Q_ind_Iso_RT.npy')
+Qind_IND_LT = np.load('./OUTPUT/INDvsCTRL/Q_ind_Iso_LT.npy')
 
-pearson_corrs_LT = np.zeros(Qind_EP_LT.shape[1])
-pearson_corrs_RT = np.zeros(Qind_EP_RT.shape[1])
-for i in range(Qind_EP_LT.shape[1]):
+pearson_corrs_LT = np.zeros(Qind_IND_LT.shape[1])
+pearson_corrs_RT = np.zeros(Qind_IND_RT.shape[1])
+for i in range(Qind_IND_LT.shape[1]):
     # Calculate Pearson correlation between the i-th column of A and B
-    corr_LT, _ = scipy.stats.pearsonr(Qind_EP_LT[:,i], Qind_HC_LT[:, i])
-    corr_RT, _ = scipy.stats.pearsonr(Qind_EP_RT[:, i], Qind_HC_RT[:, i])
+    corr_LT, _ = scipy.stats.pearsonr(Qind_IND_LT[:,i], Qind_HC_LT[:, i])
+    corr_RT, _ = scipy.stats.pearsonr(Qind_IND_RT[:, i], Qind_HC_RT[:, i])
     pearson_corrs_LT[i] = np.abs(corr_LT)
     pearson_corrs_RT[i] = np.abs(corr_RT)
 fig, axs = plt.subplots(1,1,figsize=(30, 10), constrained_layout=True)
@@ -225,36 +243,38 @@ axs.legend(["LTLE", "RTLE"]); axs.grid(True)
 
 ### 
 vmin=-2; vmax=2
-for i in np.arange(5):
-    #plot_rois_pyvista(scipy.stats.zscore(Qind_HC_RT[:,i]), scale, './FIGURES/EPvsCTRL/harmonics',  label='Qind_HC_RT_%d'%i)
-    #plot_rois_pyvista(scipy.stats.zscore(Qind_EP_RT[:,i]), scale, './FIGURES/EPvsCTRL/harmonics',  label='Qind_EP_RT_%d'%i)
-    #plot_rois_pyvista(scipy.stats.zscore(Qind_HC_LT[:,i]), scale, './FIGURES/EPvsCTRL/harmonics',  label='Qind_HC_LT_%d'%i)
-    #plot_rois_pyvista(scipy.stats.zscore(Qind_EP_LT[:,i]), scale, './FIGURES/EPvsCTRL/harmonics',  label='Qind_EP_LT_%d'%i)
-    plot_rois_pyvista_superior(scipy.stats.zscore(Qind_HC_RT[:,i]), scale, './FIGURES/INDvsCTRL/harmonics', vmin=vmin, vmax=vmax, label='Qind_HC_RT_%d'%i)
-    plot_rois_pyvista_superior(scipy.stats.zscore(Qind_EP_RT[:,i]), scale, './FIGURES/INDvsCTRL/harmonics', vmin=vmin, vmax=vmax, label='Qind_Iso_RT_%d'%i)
-    plot_rois_pyvista_superior(scipy.stats.zscore(Qind_HC_LT[:,i]), scale, './FIGURES/INDvsCTRL/harmonics',  vmin=vmin, vmax=vmax,label='Qind_HC_LT_%d'%i)
-    plot_rois_pyvista_superior(scipy.stats.zscore(Qind_EP_LT[:,i]), scale, './FIGURES/INDvsCTRL/harmonics',  vmin=vmin, vmax=vmax,label='Qind_Iso_LT_%d'%i)
-    tmp = np.abs(scipy.stats.zscore(Qind_HC_RT[:,i])) - np.abs(scipy.stats.zscore(Qind_EP_RT[:,i]))
-    plot_rois_pyvista_superior(tmp, scale, './FIGURES/INDvsCTRL/harmonics', label='Qind_HC-Iso_RT_%d'%i)
-    tmp = np.abs(scipy.stats.zscore(Qind_HC_LT[:,i])) - np.abs(scipy.stats.zscore(Qind_EP_LT[:,i]))
-    plot_rois_pyvista_superior(tmp, scale, './FIGURES/INDvsCTRL/harmonics',  label='Qind_HC-Iso_LT_%d'%i)
-    tmp = np.abs(scipy.stats.zscore(Qind_EP_LT[:,i])) - np.abs(scipy.stats.zscore(Qind_EP_RT[:,i]))
-    plot_rois_pyvista_superior(tmp, scale, './FIGURES/INDvsCTRL/harmonics', label='Qind_LT-RT_%d'%i)
+if not os.path.exists('./FIGURES/INDvsCTRL/harmonics'):
+    os.makedirs('./FIGURES/INDvsCTRL/harmonics')
+    for i in np.arange(5):
+        #plot_rois_pyvista(scipy.stats.zscore(Qind_HC_RT[:,i]), scale, './FIGURES/EPvsCTRL/harmonics',  label='Qind_HC_RT_%d'%i)
+        #plot_rois_pyvista(scipy.stats.zscore(Qind_IND_RT[:,i]), scale, './FIGURES/EPvsCTRL/harmonics',  label='Qind_IND_RT_%d'%i)
+        #plot_rois_pyvista(scipy.stats.zscore(Qind_HC_LT[:,i]), scale, './FIGURES/EPvsCTRL/harmonics',  label='Qind_HC_LT_%d'%i)
+        #plot_rois_pyvista(scipy.stats.zscore(Qind_IND_LT[:,i]), scale, './FIGURES/EPvsCTRL/harmonics',  label='Qind_IND_LT_%d'%i)
+        plot_rois_pyvista_superior(scipy.stats.zscore(Qind_HC_RT[:,i]), scale, './FIGURES/INDvsCTRL/harmonics', vmin=vmin, vmax=vmax, label='Qind_HC_RT_%d'%i)
+        plot_rois_pyvista_superior(scipy.stats.zscore(Qind_IND_RT[:,i]), scale, './FIGURES/INDvsCTRL/harmonics', vmin=vmin, vmax=vmax, label='Qind_Iso_RT_%d'%i)
+        plot_rois_pyvista_superior(scipy.stats.zscore(Qind_HC_LT[:,i]), scale, './FIGURES/INDvsCTRL/harmonics',  vmin=vmin, vmax=vmax,label='Qind_HC_LT_%d'%i)
+        plot_rois_pyvista_superior(scipy.stats.zscore(Qind_IND_LT[:,i]), scale, './FIGURES/INDvsCTRL/harmonics',  vmin=vmin, vmax=vmax,label='Qind_Iso_LT_%d'%i)
+        tmp = np.abs(scipy.stats.zscore(Qind_HC_RT[:,i])) - np.abs(scipy.stats.zscore(Qind_IND_RT[:,i]))
+        plot_rois_pyvista_superior(tmp, scale, './FIGURES/INDvsCTRL/harmonics', label='Qind_HC-Iso_RT_%d'%i)
+        tmp = np.abs(scipy.stats.zscore(Qind_HC_LT[:,i])) - np.abs(scipy.stats.zscore(Qind_IND_LT[:,i]))
+        plot_rois_pyvista_superior(tmp, scale, './FIGURES/INDvsCTRL/harmonics',  label='Qind_HC-Iso_LT_%d'%i)
+        tmp = np.abs(scipy.stats.zscore(Qind_IND_LT[:,i])) - np.abs(scipy.stats.zscore(Qind_IND_RT[:,i]))
+        plot_rois_pyvista_superior(tmp, scale, './FIGURES/INDvsCTRL/harmonics', label='Qind_LT-RT_%d'%i)
     
 ### Plot the SDI
 #######################
-SDI_HC_LT = np.load('./OUTPUT/EPvsCTRL/SDI_HC_dsi_LT.npy')
-SDI_EP_LT = np.load('./OUTPUT/INDvsCTRL/SDI_Iso_LT.npy')
-SDI_HC_RT = np.load('./OUTPUT/EPvsCTRL/SDI_HC_dsi_RT.npy')
-SDI_EP_RT = np.load('./OUTPUT/INDvsCTRL/SDI_Iso_RT.npy')
-surr_thresh_HC_LT = np.load('./OUTPUT/EPvsCTRL/SDI_surr_thresh_HC_dsi_LT.npy', allow_pickle=True)
-surr_thresh_HC_RT = np.load('./OUTPUT/EPvsCTRL/SDI_surr_thresh_HC_dsi_RT.npy', allow_pickle=True)
-surr_thresh_EP_RT = np.load('./OUTPUT/INDvsCTRL/SDI_surr_thresh_Iso_RT.npy', allow_pickle=True)
-surr_thresh_EP_LT = np.load('./OUTPUT/INDvsCTRL/SDI_surr_thresh_Iso_LT.npy', allow_pickle=True)
-SDI_sig_subjectwise_HC_LT = np.load('./OUTPUT/EPvsCTRL/SDI_sig_subjectwise_HC_dsi_LT.npy', allow_pickle=True)
-SDI_sig_subjectwise_EP_LT = np.load('./OUTPUT/INDvsCTRL/SDI_sig_subjectwise_Iso_LT.npy', allow_pickle=True)
-SDI_sig_subjectwise_HC_RT = np.load('./OUTPUT/EPvsCTRL/SDI_sig_subjectwise_HC_dsi_RT.npy', allow_pickle=True)
-SDI_sig_subjectwise_EP_RT = np.load('./OUTPUT/INDvsCTRL/SDI_sig_subjectwise_Iso_RT.npy', allow_pickle=True)
+SDI_HC_LT = np.load('./OUTPUT/EPvsCTRL/SDI_%s_HC_dsi_LT.npy'%metric)
+SDI_IND_LT = np.load('./OUTPUT/INDvsCTRL/SDI_Iso_LT.npy')
+SDI_HC_RT = np.load('./OUTPUT/EPvsCTRL/SDI_%s_HC_dsi_RT.npy'%metric)
+SDI_IND_RT = np.load('./OUTPUT/INDvsCTRL/SDI_Iso_RT.npy')
+surr_thresh_HC_LT = np.load('./OUTPUT/EPvsCTRL/SDI_surr_thresh_%s_HC_dsi_LT.npy'%metric, allow_pickle=True)
+surr_thresh_HC_RT = np.load('./OUTPUT/EPvsCTRL/SDI_surr_thresh_%s_HC_dsi_RT.npy'%metric, allow_pickle=True)
+surr_thresh_IND_RT = np.load('./OUTPUT/INDvsCTRL/SDI_surr_thresh_Iso_RT.npy', allow_pickle=True)
+surr_thresh_IND_LT = np.load('./OUTPUT/INDvsCTRL/SDI_surr_thresh_Iso_LT.npy', allow_pickle=True)
+SDI_sig_subjectwise_HC_LT = np.load('./OUTPUT/EPvsCTRL/SDI_sig_subjectwise_%s_HC_dsi_LT.npy'%metric, allow_pickle=True)
+SDI_sig_subjectwise_IND_LT = np.load('./OUTPUT/INDvsCTRL/SDI_sig_subjectwise_Iso_LT.npy', allow_pickle=True)
+SDI_sig_subjectwise_HC_RT = np.load('./OUTPUT/EPvsCTRL/SDI_sig_subjectwise_%s_HC_dsi_RT.npy'%metric, allow_pickle=True)
+SDI_sig_subjectwise_IND_RT = np.load('./OUTPUT/INDvsCTRL/SDI_sig_subjectwise_Iso_RT.npy', allow_pickle=True)
 
 #print((np.where(surr_thresh_HC_LT[5]['SDI_sig']!=0)[0])) # 6 out of 8 patients
 #print((np.where(surr_thresh_HC_RT[5]['SDI_sig']!=0)[0])) # 7 out of 9 patients
@@ -263,10 +283,10 @@ labels_118 = df_118['Label Lausanne2008']
 labels_118 = np.array(labels_118)
 
 
-print(labels_118[np.where(surr_thresh_EP_LT[5]['SDI_sig']!=0)[0]])
-print(labels_118[np.where(surr_thresh_EP_RT[5]['SDI_sig']!=0)[0]])
-print(surr_thresh_EP_LT[5]['mean_SDI'][np.where(surr_thresh_EP_LT[5]['SDI_sig']!=0)[0]])
-print(surr_thresh_EP_RT[5]['mean_SDI'][np.where(surr_thresh_EP_RT[5]['SDI_sig']!=0)[0]])
+print(labels_118[np.where(surr_thresh_IND_LT[5]['SDI_sig']!=0)[0]])
+print(labels_118[np.where(surr_thresh_IND_RT[5]['SDI_sig']!=0)[0]])
+print(surr_thresh_IND_LT[5]['mean_SDI'][np.where(surr_thresh_IND_LT[5]['SDI_sig']!=0)[0]])
+print(surr_thresh_IND_RT[5]['mean_SDI'][np.where(surr_thresh_IND_RT[5]['SDI_sig']!=0)[0]])
 
 
 #print(len(np.where(SDI_sig_subjectwise_HC_LT[:,6]!=0)[0]))
@@ -274,39 +294,39 @@ print(surr_thresh_EP_RT[5]['mean_SDI'][np.where(surr_thresh_EP_RT[5]['SDI_sig']!
 nROIs = 118
 mean_SDI_HC_RT = np.zeros((np.shape(surr_thresh_HC_RT)[0], nROIs))
 SDI_sig_HC_RT = np.zeros((np.shape(surr_thresh_HC_RT)[0], nROIs))
-mean_SDI_HC_LT = np.copy(mean_SDI_HC_RT); mean_SDI_EP_LT = np.copy(mean_SDI_HC_RT); mean_SDI_EP_RT = np.copy(mean_SDI_HC_RT)
+mean_SDI_HC_LT = np.copy(mean_SDI_HC_RT); mean_SDI_IND_LT = np.copy(mean_SDI_HC_RT); mean_SDI_IND_RT = np.copy(mean_SDI_HC_RT)
 SDI_sig_HC_LT = np.copy(SDI_sig_HC_RT); SDI_sig_EP_LT = np.copy(SDI_sig_HC_RT); SDI_sig_EP_RT = np.copy(SDI_sig_HC_RT) 
 for s in np.arange(np.shape(surr_thresh_HC_RT)[0]):
     th = surr_thresh_HC_RT[s]['threshold']
     mean_SDI_HC_RT[s,:] = surr_thresh_HC_RT[s]['mean_SDI']
     SDI_sig_HC_RT[s,:] = surr_thresh_HC_RT[s]['SDI_sig']
-    mean_SDI_EP_RT[s,:] = surr_thresh_EP_RT[s]['mean_SDI']
-    SDI_sig_EP_RT[s,:] = surr_thresh_EP_RT[s]['SDI_sig']
+    mean_SDI_IND_RT[s,:] = surr_thresh_IND_RT[s]['mean_SDI']
+    SDI_sig_EP_RT[s,:] = surr_thresh_IND_RT[s]['SDI_sig']
 for s in np.arange(np.shape(surr_thresh_HC_LT)[0]):
     th = surr_thresh_HC_LT[s]['threshold']
     mean_SDI_HC_LT[s,:] = surr_thresh_HC_LT[s]['mean_SDI']
     SDI_sig_HC_LT[s,:] = surr_thresh_HC_LT[s]['SDI_sig']
-    mean_SDI_EP_LT[s,:] = surr_thresh_EP_LT[s]['mean_SDI']
-    SDI_sig_EP_LT[s,:] = surr_thresh_EP_LT[s]['SDI_sig']
+    mean_SDI_IND_LT[s,:] = surr_thresh_IND_LT[s]['mean_SDI']
+    SDI_sig_EP_LT[s,:] = surr_thresh_IND_LT[s]['SDI_sig']
 
 fig, axs = plt.subplots(1, 2, figsize=(20,10), constrained_layout=True) 
-axs[0].scatter(mean_SDI_HC_RT[0,:], mean_SDI_EP_RT[0,:], c='k', alpha=0.5)
-[r,p]= scipy.stats.pearsonr(mean_SDI_HC_RT[s,:], mean_SDI_EP_RT[s,:])
+axs[0].scatter(mean_SDI_HC_RT[0,:], mean_SDI_IND_RT[0,:], c='k', alpha=0.5)
+[r,p]= scipy.stats.pearsonr(mean_SDI_HC_RT[s,:], mean_SDI_IND_RT[s,:])
 axs[0].set_title(f"RTLE \n Correlation between mean SDI \n (r = {r:.2f}, p = {p:.2e}) ", fontsize=10)
 axs[0].set_xlabel('Mean SDI HC SC'); axs[0].set_ylabel('Mean SDI RTLE SC')
-axs[1].scatter(mean_SDI_HC_LT[0,:], mean_SDI_EP_LT[0,:], c='k', alpha=0.5)
-[r,p]= scipy.stats.pearsonr(mean_SDI_HC_LT[s,:], mean_SDI_EP_LT[s,:])
+axs[1].scatter(mean_SDI_HC_LT[0,:], mean_SDI_IND_LT[0,:], c='k', alpha=0.5)
+[r,p]= scipy.stats.pearsonr(mean_SDI_HC_LT[s,:], mean_SDI_IND_LT[s,:])
 axs[1].set_title(f"LTLE \n Correlation between mean SDI \n (r = {r:.2f}, p = {p:.2e}) ", fontsize=10)
 axs[1].set_xlabel('Mean SDI SC'); axs[1].set_ylabel('Mean SDI LTLE SC')
 
-nbROIs_EP_RT = np.load('./OUTPUT/INDvsCTRL/nbROIs_sig_Iso_RT.npy')
-nbROIs_EP_LT = np.load('./OUTPUT/INDvsCTRL/nbROIs_sig_Iso_LT.npy')
-nbROIs_HC_RT = np.load('./OUTPUT/EPvsCTRL/nbROIs_sig_HC_dsi_RT.npy')
-nbROIs_HC_LT = np.load('./OUTPUT/EPvsCTRL/nbROIs_sig_HC_dsi_LT.npy')
+nbROIs_IND_RT = np.load('./OUTPUT/INDvsCTRL/nbROIs_sig_Iso_RT.npy')
+nbROIs_IND_LT = np.load('./OUTPUT/INDvsCTRL/nbROIs_sig_Iso_LT.npy')
+nbROIs_HC_RT = np.load('./OUTPUT/EPvsCTRL/nbROIs_sig_%s_HC_dsi_RT.npy'%metric)
+nbROIs_HC_LT = np.load('./OUTPUT/EPvsCTRL/nbROIs_sig_%s_HC_dsi_LT.npy'%metric)
 
 fig, ax = plt.subplots(1,1)
-ls_nbROIs_sig = [nbROIs_HC_RT, nbROIs_HC_LT, nbROIs_EP_RT, nbROIs_EP_LT]
-ls_surr_thresh = [surr_thresh_HC_RT, surr_thresh_HC_LT, surr_thresh_EP_RT, surr_thresh_EP_LT]
+ls_nbROIs_sig = [nbROIs_HC_RT, nbROIs_HC_LT, nbROIs_IND_RT, nbROIs_IND_LT]
+ls_surr_thresh = [surr_thresh_HC_RT, surr_thresh_HC_LT, surr_thresh_IND_RT, surr_thresh_IND_LT]
 ls_labels = ["HC RT", "HC LT", "Ind. RT", "Ind. LT"]
 ls_labels = np.array(ls_labels)
 
@@ -322,9 +342,60 @@ for t in np.arange(len(ls_labels)):
 ax.legend(ls_labels, loc='upper right')
 ax.set_title('Number of significant SDI ROIs') 
 
+### 25.11.2025: Adapt this part to print the table of significant ROIs, where instead of EP and HC, it would be HC and INd,
+### In this context, EP refers to the Ind. consensus connectome from Isotta data
+### And HC refers to the HC consensus connectome from DSI GVA data
+df_118 = pd.read_csv('DATA/label/labels_rois_118.csv')
 
+labels_118 = df_118['Label Lausanne2008']
+labels_118 = np.array(labels_118)
+print('Significant ROIs for threshold 5:')
+tmp = np.where(surr_thresh_HC_LT[5]['SDI_sig']!=0)[0]
+for i in range(len(tmp)):
+    print(f"HC_RT {labels_118[tmp[i]]} {surr_thresh_HC_RT[5]['mean_SDI'][tmp[i]]}")
+tmp = np.where(surr_thresh_HC_RT[5]['SDI_sig']!=0)[0]
+for i in range(len(tmp)):
+    print(f"HC_RT {labels_118[tmp[i]]} {surr_thresh_HC_RT[5]['mean_SDI'][tmp[i]]}")
+tmp = np.where(surr_thresh_IND_LT[5]['SDI_sig']!=0)[0]
+for i in range(len(tmp)):
+    print(f"EP_LT {labels_118[tmp[i]]} {surr_thresh_IND_LT[5]['mean_SDI'][tmp[i]]}")
+tmp = np.where(surr_thresh_IND_RT[5]['SDI_sig']!=0)[0]
+for i in range(len(tmp)):
+    print(f"EP_RT {labels_118[tmp[i]]} {surr_thresh_IND_RT[5]['mean_SDI'][tmp[i]]}")
 
+# Print table with significant ROIs and their mean SDI values
+groups = {"HC_LT": surr_thresh_HC_LT,"HC_RT": surr_thresh_HC_RT,
+    "IND_LT": surr_thresh_IND_LT,"IND_RT": surr_thresh_IND_RT,}
 
+# Collect all indices that are significant in any group
+all_idx = set()
+for surr in groups.values():
+    sig_idx = np.where(surr[5]['SDI_sig'] != 0)[0]
+    all_idx.update(sig_idx)
+all_idx = sorted(list(all_idx))
 
+# Build a dictionary for DataFrame
+data = {("ROI", ""): [labels_118[idx] for idx in all_idx]}  # make ROI a tuple
+for side in ["LT", "RT"]:
+    for group in ["HC", "IND"]:
+        col_name = (side, group)  # multi-index column
+        values = []
+        for idx in all_idx:
+            key = f"{group}_{side}"
+            if groups[key][5]['SDI_sig'][idx] != 0:
+                values.append(round(groups[key][5]['mean_SDI'][idx],2))
+            else:
+                values.append(np.nan)
+        data[col_name] = values
 
-plt.show()
+# Create DataFrame with MultiIndex columns
+df = pd.DataFrame(data)
+df.columns = pd.MultiIndex.from_tuples(df.columns)
+
+# Print DataFrame
+print(df)
+
+# Optional: export to Excel
+df.to_excel("SDI_comparison_table_INDvsCTRL.xlsx", index=True)
+
+#plt.show()

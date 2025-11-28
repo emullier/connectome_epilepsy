@@ -1,0 +1,48 @@
+,sub,dwi,age,sex,group
+0,sub-298801a7d5f1,dsi,,,
+1,sub-2d87b5bd62ef,dsi,,,
+2,sub-2e28390dba49,dsi,,,
+3,sub-4313b62f8ac2,dsi,,,
+4,sub-8600263105cd,dsi,,,
+5,sub-15513ea82b3b,dsi,,,
+6,sub-1abfe5623910,dsi,,,
+7,sub-244af16bf699,dsi,,,
+8,sub-b95d3e53a9ce,dsi,,,
+9,sub-c505474f8fbc,dsi,,,
+10,sub-c61a1850b63f,dsi,,,
+11,sub-d0bc6fce879a,dsi,,,
+12,sub-e8c7e79c759c,dsi,,,
+13,sub-f037ef54a962,dsi,,,
+14,sub-20200228,multishell,32,m,control
+15,sub-20200304,multishell,28,m,control
+16,sub-20200305,multishell,24,m,control
+17,sub-20200311,multishell,48,m,control
+18,sub-20200625,multishell,29,m,control
+19,sub-20201014,multishell,33,m,control
+20,sub-20210423,multishell,28,f,control
+21,sub-20211105,multishell,28,f,control
+22,sub-20211116,multishell,identical with 1117,m,control
+23,sub-20211117,multishell,24,f,control
+24,sub-20211221,multishell,24,f,control
+25,sub-20220120,multishell,21,f,control
+26,sub-20220121,multishell,25,m,control
+27,sub-20220323,multishell,38,f,control
+28,sub-20220614,multishell,44,m,control
+29,sub-20221129,multishell,34,m,control
+30,sub-20221130,multishell,23,f,control
+31,sub-20210312,multishell,29,m,control
+32,sub-20200211,multishell,28,m,control
+33,sub-epi20171201,multishell,30,m,LT
+34,sub-epi20180706,multishell,30,f,LT
+35,sub-epi20180116,multishell,27,m,RT
+36,sub-epi20170920,multishell,61,f,RT
+37,sub-epi20220107,multishell,23,f,LT
+38,sub-epi20200813,multishell,23,f,LT?
+39,sub-epi20201016,multishell,18,f,LT
+40,sub-epi20201127,multishell,40,f,LT
+41,sub-epi20210121,multishell,47,f,LT
+42,sub-epi20210319,multishell,33,f,LT? Amygd?
+43,sub-ep20220325,multishell,26,f,LT
+44,sub-epi20190219,multishell,18,m,LT vs. Multifocal?
+45,sub-epi20190130,multishell,54,f,LT
+46,sub-epi20180518,multishell,43,f,RT or RF? 

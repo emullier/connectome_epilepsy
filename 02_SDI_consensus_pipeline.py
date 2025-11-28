@@ -11,6 +11,10 @@ Fig 4: Correlation between mean SDI using consensus SC HC and consensus SC EP fo
 Fig 5: Number of ROIs with significant SDI depending on the number of subjects included in the analysis for HC and EP with RTLE and LTLE patients
 Saved fig: Brain plot of the mean SDI values for different thresholds (2, 5) for HC and EP with RTLE and LTLE patients.
 
+
+Required datasets:
+- 3D structures generated from the original data of Geneva datasets (DSI and multishell) and else, with code 01_save_3DStructures.py 
+
 Parameters to modify:
 - metric: metric to use to generate the consensus SC ('number_of_fibers', 'normalized_fiber_density', 'fiber_length_mean')
 - dwi: DSI or multishell
@@ -40,8 +44,8 @@ for g,group in enumerate(ls_groups):
         #metric = "normalized_fiber_density" # "number_of_fibers"
         metric = "number_of_fibers" #'fiber_length_mean' #"number_of_fibers", "normalized_fiber_density" # 'shore_gfa_mean'
         dwi = "dsi"
-        data_path = "DATA/matMetric_%s_%s_%s.npy"%(group, dwi, metric)
-        example_dir = r"C:\\Users\\emeli\\Documents\\CHUV\\TEST_RETEST_DSI_microstructure\\SFcoupling_IED_GSP\\data\\data"
+        data_path = "DATA/SC/matMetric_%s_%s_%s.npy"%(group, dwi, metric)
+        example_dir = "DATA/EEG"
         infoGVA_path = './DEMOGRAPHIC/info_dsi_multishell_merged_csv.csv'
         scale = 2
 
@@ -55,8 +59,13 @@ for g,group in enumerate(ls_groups):
         #########################################
         ### Load the data
         matMetric = np.load(data_path)
+        print(data_path)
         if group=='EP':
             idxs = np.where(df_info['Lateralization']==lateralization)[0]
+            idxs = idxs -1
+            print(df_info['Lateralization'])
+            print(np.shape(matMetric))
+            print(idxs)
             matMetric = matMetric[:,:,idxs]
 
         print('###################')
@@ -69,7 +78,7 @@ for g,group in enumerate(ls_groups):
         #np.fill_diagonal(consensus, 0)
         #EucDist = consensus #### To be replaced by proper Euclidean matrix
         #EucDist = (EucDist + EucDist.T)/2
-        EucDist = np.load("DATA/EucMat_%s_%s_%s.npy"%(group, dwi, metric))
+        EucDist = np.load("DATA/EucMat/EucMat_%s_%s_%s.npy"%(group, dwi, metric))
 
         print("Generate harmonics from the consensus")
         ### Generate the harmonics
@@ -161,10 +170,12 @@ df_info_orig = pd.read_csv(infoGVA_path)
 idxs2keep = np.where((df_info_orig['Inclusion']==1)*(df_info_orig['group']=='EP')*(df_info_orig['dwi']=='dsi'))[0]
 df_info= df_info_orig.iloc[idxs2keep]
 
-consensus_HC = np.load("DATA/matMetric_HC_DSI_number_of_fibers.npy")
-matMetric = np.load("DATA/matMetric_EP_DSI_number_of_fibers.npy")
+consensus_HC = np.load("DATA/SC/matMetric_HC_DSI_number_of_fibers.npy")
+matMetric = np.load("DATA/SC/matMetric_EP_DSI_number_of_fibers.npy")
 idxs_RT = np.where(df_info['Lateralization']=="RT")[0]
 idxs_LT = np.where(df_info['Lateralization']=="LT")[0]
+idxs_RT = idxs_RT -1
+idxs_LT = idxs_LT -1 
 consensus_HC = np.mean(consensus_HC, axis=2)
 consensus_EP_RT = np.mean(matMetric[:,:,idxs_RT], axis=2)
 consensus_EP_LT = np.mean(matMetric[:,:,idxs_LT], axis=2)
