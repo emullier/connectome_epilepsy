@@ -296,7 +296,7 @@ ax.set_title('Number of significant SDI ROIs')
 
 
 thr = 2
-plot_rois_pyvista(surr_thresh[thr]['mean_SDI']*surr_thresh[thr]['SDI_sig'], scale, './FIGURES/IND10', vmin=-1, vmax=1, label='SDImean_thr%d_%s_%s'%(thr, suff, lateralization))
+plot_rois_pyvista(surr_thresh[thr]['mean_SDI']*np.abs(surr_thresh[thr]['SDI_sig']), scale, './FIGURES/IND10', vmin=-1, vmax=1, label='SDImean_thr%d_%s_%s'%(thr, suff, lateralization))
 
 df_118 = pd.read_csv('DATA/label/labels_rois_118.csv')
 labels_118 = df_118['Label Lausanne2008']

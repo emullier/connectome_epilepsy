@@ -196,13 +196,22 @@ np.save('./OUTPUT/ALIGN/nbROIs_sig_matched_%s_%s_%s.npy'%(group, dwi, lateraliza
 
 
 fig, ax = plt.subplots(1,1)
-ax.plot(np.arange(np.shape(surr_thresh)[0]), np.array(nbROIs_sig), color='k')
-for i, y_value in enumerate(nbROIs_sig):
-    ax.scatter(i, y_value, color='k', marker='x', s=20)  # Cross marker
-    ax.text(i, y_value, f'{y_value}', fontsize=8, ha='left', va='bottom', color='k')
+x = np.arange(np.shape(surr_thresh)[0])
+ax.plot(x, np.array(nbROIs_sig), color='#1f77b4', linewidth=2, marker='o', markersize=5, label='Raw (Consensus)')
+ax.plot(x, np.array(nbROIs_sig_rotated), color='#2ca02c', linewidth=2, marker='s', markersize=5, label='Gen. Procrustes')
+ax.plot(x, np.array(nbROIs_sig_ortho_rotated), color='#ff7f0e', linewidth=2, marker='^', markersize=5, label='Ortho. Procrustes')
+ax.plot(x, np.array(nbROIs_sig_matched), color='#d62728', linewidth=2, marker='D', markersize=5, label='Hungarian')
+
+# Add value labels on points
+for i, (y0, y1, y2, y3) in enumerate(zip(nbROIs_sig, nbROIs_sig_rotated, nbROIs_sig_ortho_rotated, nbROIs_sig_matched)):
+    ax.text(i-0.1, y0, f'{y0}', fontsize=7, ha='center', va='bottom', color='#1f77b4', fontweight='bold')
+    ax.text(i+0.05, y1, f'{y1}', fontsize=7, ha='center', va='bottom', color='#2ca02c', fontweight='bold')
+    ax.text(i+0.15, y2, f'{y2}', fontsize=7, ha='center', va='bottom', color='#ff7f0e', fontweight='bold')
+    ax.text(i+0.25, y3, f'{y3}', fontsize=7, ha='center', va='bottom', color='#d62728', fontweight='bold')
 ax.axvline(x=0.75*np.shape(surr_thresh)[0], color='r', linestyle='--', linewidth=2, label='75% of participants')
 ax.set_xlabel('Threshold #Subs'); ax.set_ylabel('#ROIs with significant SDI')
 ax.grid('on', alpha=.2)
+ax.legend(fontsize=9, loc='upper right')
 ax.set_title('SDI %s %s %s'%(group, dwi, lateralization))
 
 
@@ -213,9 +222,9 @@ ax.set_xlabel('Participants'); ax.set_ylabel('Cutoff frequency')
 #plt.show()
 
 thr = 2
-plot_rois_pyvista(surr_thresh[thr]['mean_SDI']*surr_thresh[thr]['SDI_sig'], scale, './FIGURES/ALIGN', vmin=-1, vmax=1, label='SDImean_thr%d_%s_%s_%s'%(thr, group, dwi, lateralization))
-plot_rois_pyvista(surr_thresh_rotated[thr]['mean_SDI']*surr_thresh_rotated[thr]['SDI_sig'], scale, './FIGURES/ALIGN', vmin=-1, vmax=1, label='SDImean_rotated_thr%d_%s_%s_%s'%(thr, group, dwi, lateralization))
-plot_rois_pyvista(surr_thresh_ortho_rotated[thr]['mean_SDI']*surr_thresh_ortho_rotated[thr]['SDI_sig'], scale, './FIGURES/ALIGN', vmin=-1, vmax=1, label='SDImean_ortho_rotated_thr%d_%s_%s_%s'%(thr, group, dwi, lateralization))
-plot_rois_pyvista(surr_thresh_matched[thr]['mean_SDI']*surr_thresh_matched[thr]['SDI_sig'], scale, './FIGURES/ALIGN', vmin=-1, vmax=1, label='SDImean_matched_thr%d_%s_%s_%s'%(thr, group, dwi, lateralization))  
+plot_rois_pyvista(surr_thresh[thr]['mean_SDI']*np.abs(surr_thresh[thr]['SDI_sig']), scale, './FIGURES/ALIGN', vmin=-1, vmax=1, label='SDImean_thr%d_%s_%s_%s'%(thr, group, dwi, lateralization))
+plot_rois_pyvista(surr_thresh_rotated[thr]['mean_SDI']*np.abs(surr_thresh_rotated[thr]['SDI_sig']), scale, './FIGURES/ALIGN', vmin=-1, vmax=1, label='SDImean_rotated_thr%d_%s_%s_%s'%(thr, group, dwi, lateralization))
+plot_rois_pyvista(surr_thresh_ortho_rotated[thr]['mean_SDI']*np.abs(surr_thresh_ortho_rotated[thr]['SDI_sig']), scale, './FIGURES/ALIGN', vmin=-1, vmax=1, label='SDImean_ortho_rotated_thr%d_%s_%s_%s'%(thr, group, dwi, lateralization))
+plot_rois_pyvista(surr_thresh_matched[thr]['mean_SDI']*np.abs(surr_thresh_matched[thr]['SDI_sig']), scale, './FIGURES/ALIGN', vmin=-1, vmax=1, label='SDImean_matched_thr%d_%s_%s_%s'%(thr, group, dwi, lateralization))  
 plt.show()
 

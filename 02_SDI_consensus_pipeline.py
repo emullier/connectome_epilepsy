@@ -30,10 +30,24 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import lib.func_GSP as gsp
-from lib.func_plot import plot_rois, plot_rois_pyvista, plot_rois_pyvista_superior
+from lib.func_plot import plot_rois, plot_rois_pyvista, plot_rois_pyvista_superior, plot_rois_pyvista_noaxes
 import scipy
 import seaborn as sns
 from tabulate import tabulate
+
+# Set matplotlib font to Aptos Body (with fallback to sans-serif)
+plt.rcParams['font.family'] = 'sans-serif'
+plt.rcParams['font.sans-serif'] = ['Aptos', 'Helvetica', 'Arial']
+plt.rcParams['font.size'] = 10
+
+# Define consistent color palette
+COLOR_HC = '#ADD8E6'      # Pale blue for HC
+COLOR_EP_RT = '#FFB366'   # Pale orange for EP RT
+COLOR_EP_LT = '#90EE90'   # Light green for EP LT
+COLOR_LTLE = '#ADD8E6'    # Pale blue for LTLE
+COLOR_RTLE = '#FFB366'    # Pale orange for RTLE
+COLORS_GROUPS = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']  # Distinct colors for 4-group plots (HC RT, HC LT, EP RT, EP LT)
+MARKERS_GROUPS = ['o', 's', '^', 'D']  # Distinct markers for each group
 
 ls_groups = ["EP", "HC"]
 ls_lateralization = ["RT", "LT"]
@@ -59,14 +73,14 @@ for g,group in enumerate(ls_groups):
         #########################################
         ### Load the data
         matMetric = np.load(data_path)
-        print(data_path)
+        idxs = np.where((df_info['Lateralization'] != '') & (df_info['Inclusion'] == 1))[0]
         if group=='EP':
             idxs = np.where(df_info['Lateralization']==lateralization)[0]
-            idxs = idxs -1
-            print(df_info['Lateralization'])
-            print(np.shape(matMetric))
-            print(idxs)
+            #idxs = idxs - 1
             matMetric = matMetric[:,:,idxs]
+        
+        #idxs = np.where(df_info['Lateralization']=='RT')[0]
+        #idxs = np.where(df_info['Lateralization']=='LT')[0]
 
         print('###################')
         print('Consensus Matrices')
@@ -160,7 +174,7 @@ for g,group in enumerate(ls_groups):
         #vmin = np.min(surr_thresh[thr]['mean_SDI']*surr_thresh[thr]['SDI_sig'])
         #vmax = np.max(surr_thresh[thr]['mean_SDI']*surr_thresh[thr]['SDI_sig'])
         vmin=-2; vmax=2
-        plot_rois_pyvista(surr_thresh[thr]['mean_SDI']*surr_thresh[thr]['SDI_sig'], scale, './FIGURES/EPvsCTRL', vmin=vmin, vmax=vmax, label='SDImean_thr%d_%s_%s_%s_%s'%(thr, metric, group, dwi, lateralization))
+        plot_rois_pyvista_noaxes(surr_thresh[thr]['mean_SDI']*np.abs(surr_thresh[thr]['SDI_sig']), scale, './FIGURES/EPvsCTRL', vmin=vmin, vmax=vmax, label='SDImean_thr%d_%s_%s_%s_%s'%(thr, metric, group, dwi, lateralization))
 
 
 
@@ -174,8 +188,8 @@ consensus_HC = np.load("DATA/SC/matMetric_HC_DSI_number_of_fibers.npy")
 matMetric = np.load("DATA/SC/matMetric_EP_DSI_number_of_fibers.npy")
 idxs_RT = np.where(df_info['Lateralization']=="RT")[0]
 idxs_LT = np.where(df_info['Lateralization']=="LT")[0]
-idxs_RT = idxs_RT -1
-idxs_LT = idxs_LT -1 
+#idxs_RT = idxs_RT -1
+#idxs_LT = idxs_LT -1 
 consensus_HC = np.mean(consensus_HC, axis=2)
 consensus_EP_RT = np.mean(matMetric[:,:,idxs_RT], axis=2)
 consensus_EP_LT = np.mean(matMetric[:,:,idxs_LT], axis=2)
@@ -184,13 +198,16 @@ cons_HC_vec = consensus_HC.flatten()
 cons_EP_RT_vec = consensus_EP_RT.flatten()
 cons_EP_LT_vec = consensus_EP_LT.flatten()
 
-fig, axs = plt.subplots(2,3, figsize=(10,10), constrained_layout=True)
-axs[0,0].imshow(consensus_HC); axs[0,0].set_title('Consensus HC DSI GVA')
-axs[0,1].imshow(consensus_EP_RT); axs[0,1].set_title('Consensus EP RT')
-axs[0,2].imshow(consensus_EP_LT); axs[0,2].set_title('Consensus EP LT')
-axs[1,0].scatter(cons_HC_vec, cons_EP_RT_vec); axs[1,0].set_xlabel('HC'); axs[1,0].set_ylabel('EP RT')
-axs[1,1].scatter(cons_HC_vec, cons_EP_LT_vec); axs[1,1].set_xlabel('HC'); axs[1,1].set_ylabel('EP LT')
-axs[1,2].scatter(cons_EP_RT_vec, cons_EP_LT_vec); axs[1,2].set_xlabel('EP RT'); axs[1,0].set_ylabel('EP LT')
+fig, axs = plt.subplots(2,3, figsize=(15,10), constrained_layout=True)
+for ax in axs.flat:
+    ax.tick_params(labelsize=10)
+
+axs[0,0].imshow(consensus_HC); axs[0,0].set_title('Consensus HC DSI GVA', fontsize=12, fontweight='bold')
+axs[0,1].imshow(consensus_EP_RT); axs[0,1].set_title('Consensus EP RT', fontsize=12, fontweight='bold')
+axs[0,2].imshow(consensus_EP_LT); axs[0,2].set_title('Consensus EP LT', fontsize=12, fontweight='bold')
+axs[1,0].scatter(cons_HC_vec, cons_EP_RT_vec, alpha=0.6, s=50, edgecolors='darkgray', linewidth=0.5); axs[1,0].set_xlabel('HC', fontsize=11, fontweight='bold'); axs[1,0].set_ylabel('EP RT', fontsize=11, fontweight='bold'); axs[1,0].grid(True, alpha=0.3, linestyle='--')
+axs[1,1].scatter(cons_HC_vec, cons_EP_LT_vec, alpha=0.6, s=50, edgecolors='darkgray', linewidth=0.5); axs[1,1].set_xlabel('HC', fontsize=11, fontweight='bold'); axs[1,1].set_ylabel('EP LT', fontsize=11, fontweight='bold'); axs[1,1].grid(True, alpha=0.3, linestyle='--')
+axs[1,2].scatter(cons_EP_RT_vec, cons_EP_LT_vec, alpha=0.6, s=50, edgecolors='darkgray', linewidth=0.5); axs[1,2].set_xlabel('EP RT', fontsize=11, fontweight='bold'); axs[1,2].set_ylabel('EP LT', fontsize=11, fontweight='bold'); axs[1,2].grid(True, alpha=0.3, linestyle='--')
 
 
 ### Plot the cutoff frequencies
@@ -198,23 +215,32 @@ axs[1,2].scatter(cons_EP_RT_vec, cons_EP_LT_vec); axs[1,2].set_xlabel('EP RT'); 
 cutoff_HC = np.load('./OUTPUT/EPvsCTRL/cutoff_%s_HC_%s.npy'%(metric, dwi))
 cutoff_EP = np.load('./OUTPUT/EPvsCTRL/cutoff_%s_EP_%s.npy'%(metric,dwi))
 
-stat, p_mwu = scipy.stats.mannwhitneyu(cutoff_HC, cutoff_EP, alternative='two-sided')
-print(f"HC - EP \n Mann-Whitney U test statistic = {stat:.3f}, p-value = {p_mwu:.3g}")
+stat, p_mwu = scipy.stats.wilcoxon(cutoff_HC, cutoff_EP, alternative='two-sided')
+print(f"HC - EP \n Wilcoxon signed-rank test statistic = {stat:.3f}, p-value = {p_mwu:.3g}")
 r_value, p_value = scipy.stats.pearsonr(cutoff_HC, cutoff_EP)
 
-fig, ax = plt.subplots(1, 2, figsize=(10, 4))
-ax[0].scatter(cutoff_HC, cutoff_EP, c='tab:blue', alpha=0.6, edgecolors='w', s=60)
-ax[0].set_title(f"Pearson r = {r_value:.3f}, p = {p_value:.3f}", fontsize=10)
-ax[0].set_xlabel('Cutoff frequency HC'); ax[0].set_ylabel('Cutoff frequency EP'); ax[0].grid(True)
-sns.boxplot(data=[cutoff_HC, cutoff_EP], ax=ax[1], width=0.5, palette='colorblind')
-sns.stripplot(data=[cutoff_HC, cutoff_EP], ax=ax[1], color='black', size=4, jitter=True, dodge=True)
+fig, ax = plt.subplots(1, 2, figsize=(14, 6), constrained_layout=True)
+ax[0].scatter(cutoff_HC, cutoff_EP, c='k', alpha=.6, edgecolors='darkgray', s=80, linewidth=0.5)
+ax[0].set_title(f"Pearson r = {r_value:.3f}, p = {p_value:.3f}", fontsize=12, fontweight='bold', pad=10)
+ax[0].set_xlabel('Cutoff frequency HC', fontsize=11, fontweight='bold'); ax[0].set_ylabel('Cutoff frequency EP', fontsize=11, fontweight='bold'); ax[0].grid(True, alpha=0.3, linestyle='--'); ax[0].tick_params(labelsize=10)
+box_palette = [COLOR_HC, COLOR_EP_RT]
+# Apply transparency to boxplot
+sns.boxplot(data=[cutoff_HC, cutoff_EP], ax=ax[1], width=0.5, palette=box_palette)
+# Add transparency to boxes
+for patch in ax[1].patches:
+    patch.set_alpha(0.8)
+sns.stripplot(data=[cutoff_HC, cutoff_EP], ax=ax[1], color='black', size=5, jitter=True, dodge=True, alpha=0.6)
 ax[1].set_xticks([0, 1])
-ax[1].set_xticklabels(['HC Consensus', 'EP Consensus'])
-ax[1].set_ylabel('Cutoff frequency')
-ax[1].set_title(f'Mann-Whitney U U = {stat:.3f}, p = {p_mwu:.3g}', fontsize=10)
-ax[1].grid(True, axis='y', linestyle='--', alpha=0.5)
+ax[1].set_xticklabels(['HC Consensus', 'EP Consensus'], fontsize=11, fontweight='bold')
+ax[1].set_ylabel('Cutoff frequency', fontsize=11, fontweight='bold')
+ax[1].set_title(f'Wilcoxon signed-rank test statistic = {stat:.3f}, p = {p_mwu:.3g}', fontsize=12, fontweight='bold', pad=10)
+ax[1].grid(True, axis='y', linestyle='--', alpha=0.3); ax[1].tick_params(labelsize=10)
+sns.stripplot(data=[cutoff_HC, cutoff_EP], ax=ax[1], color='black', size=5, jitter=True, dodge=True, alpha=0.6)
+ax[1].set_xticklabels(['HC Consensus', 'EP Consensus'], fontsize=11, fontweight='bold')
+ax[1].set_ylabel('Cutoff frequency', fontsize=11, fontweight='bold')
+ax[1].set_title(f'Wilcoxon signed-rank test statistic = {stat:.3f}, p = {p_mwu:.3g}', fontsize=12, fontweight='bold', pad=10)
+ax[1].grid(True, axis='y', linestyle='--', alpha=0.3); ax[1].tick_params(labelsize=10)
 plt.tight_layout()
-
 
 
 ### Plot the harmonics
@@ -232,12 +258,12 @@ for i in range(Qind_EP_LT.shape[1]):
     corr_RT, _ = scipy.stats.pearsonr(Qind_EP_RT[:, i], Qind_HC_RT[:, i])
     pearson_corrs_LT[i] = np.abs(corr_LT)
     pearson_corrs_RT[i] = np.abs(corr_RT)
-fig, axs = plt.subplots(1,1,figsize=(30, 10), constrained_layout=True)
-axs.plot(range(1, len(pearson_corrs_LT) + 1), pearson_corrs_LT, linestyle='-', color='b')
-axs.plot(range(1, len(pearson_corrs_RT) + 1), pearson_corrs_RT, linestyle='-', color='r')
-axs.set_title("Pearson Correlation between Corresponding Eigenvectors ")
-axs.set_xlabel("Eigenvector Index"); axs.set_ylabel("Pearson Correlation Coefficient")
-axs.legend(["LTLE", "RTLE"]); axs.grid(True)
+fig, axs = plt.subplots(1,1,figsize=(14, 7), constrained_layout=True)
+axs.plot(range(1, len(pearson_corrs_LT) + 1), pearson_corrs_LT, linestyle='-', color=COLOR_LTLE, linewidth=2.5, marker='o', markersize=4, alpha=0.7, label='LTLE')
+axs.plot(range(1, len(pearson_corrs_RT) + 1), pearson_corrs_RT, linestyle='-', color=COLOR_RTLE, linewidth=2.5, marker='s', markersize=4, alpha=0.7, label='RTLE')
+axs.set_title("Pearson Correlation between Corresponding Eigenvectors", fontsize=13, fontweight='bold', pad=15)
+axs.set_xlabel("Eigenvector Index", fontsize=12, fontweight='bold'); axs.set_ylabel("Pearson Correlation Coefficient", fontsize=12, fontweight='bold')
+axs.legend(fontsize=11, loc='best', framealpha=0.9); axs.grid(True, alpha=0.3, linestyle='--'); axs.tick_params(labelsize=11)
 
 ### 
 vmin=-2; vmax=2
@@ -290,22 +316,30 @@ for s in np.arange(np.shape(surr_thresh_HC_LT)[0]):
     mean_SDI_EP_LT[s,:] = surr_thresh_EP_LT[s]['mean_SDI']
     SDI_sig_EP_LT[s,:] = surr_thresh_EP_LT[s]['SDI_sig']
 
-fig, axs = plt.subplots(1, 2, figsize=(20,10), constrained_layout=True) 
-axs[0].scatter(mean_SDI_HC_RT[0,:], mean_SDI_EP_RT[0,:], c='k', alpha=0.5)
+fig, axs = plt.subplots(1, 2, figsize=(16,8), constrained_layout=True) 
+# RTLE plot
+axs[0].scatter(mean_SDI_HC_RT[0,:], mean_SDI_EP_RT[0,:], c='k', alpha=0.6, s=80, edgecolors='darkgray', linewidth=0.5)
 [r,p]= scipy.stats.pearsonr(mean_SDI_HC_RT[s,:], mean_SDI_EP_RT[s,:])
-axs[0].set_title(f"RTLE \n Correlation between mean SDI \n (r = {r:.2f}, p = {p:.2e}) ", fontsize=10)
-axs[0].set_xlabel('Mean SDI HC SC'); axs[0].set_ylabel('Mean SDI RTLE SC')
-axs[1].scatter(mean_SDI_HC_LT[0,:], mean_SDI_EP_LT[0,:], c='k', alpha=0.5)
+axs[0].set_title(f"RTLE\nCorrelation between mean SDI\n(r = {r:.2f}, p = {p:.2e})", fontsize=14, fontweight='bold', pad=15)
+axs[0].set_xlabel('Mean SDI HC', fontsize=12, fontweight='bold')
+axs[0].set_ylabel('Mean SDI RTLE', fontsize=12, fontweight='bold')
+axs[0].grid(True, alpha=0.3, linestyle='--')
+axs[0].tick_params(labelsize=11)
+# LTLE plot
+axs[1].scatter(mean_SDI_HC_LT[0,:], mean_SDI_EP_LT[0,:], c='k', alpha=0.6, s=80, edgecolors='darkgray', linewidth=0.5)
 [r,p]= scipy.stats.pearsonr(mean_SDI_HC_LT[s,:], mean_SDI_EP_LT[s,:])
-axs[1].set_title(f"LTLE \n Correlation between mean SDI \n (r = {r:.2f}, p = {p:.2e}) ", fontsize=10)
-axs[1].set_xlabel('Mean SDI SC'); axs[1].set_ylabel('Mean SDI LTLE SC')
+axs[1].set_title(f"LTLE\nCorrelation between mean SDI\n(r = {r:.2f}, p = {p:.2e})", fontsize=14, fontweight='bold', pad=15)
+axs[1].set_xlabel('Mean SDI HC', fontsize=12, fontweight='bold')
+axs[1].set_ylabel('Mean SDI LTLE', fontsize=12, fontweight='bold')
+axs[1].grid(True, alpha=0.3, linestyle='--')
+axs[1].tick_params(labelsize=11)
 
 nbROIs_EP_RT = np.load('./OUTPUT/EPvsCTRL/nbROIs_sig_%s_EP_%s_RT.npy'%(metric,dwi))
 nbROIs_EP_LT = np.load('./OUTPUT/EPvsCTRL/nbROIs_sig_%s_EP_%s_LT.npy'%(metric,dwi))
 nbROIs_HC_RT = np.load('./OUTPUT/EPvsCTRL/nbROIs_sig_%s_HC_%s_RT.npy'%(metric,dwi))
 nbROIs_HC_LT = np.load('./OUTPUT/EPvsCTRL/nbROIs_sig_%s_HC_%s_LT.npy'%(metric,dwi))
 
-fig, ax = plt.subplots(1,1)
+fig, ax = plt.subplots(1,1, figsize=(12, 7), constrained_layout=True)
 ls_nbROIs_sig = [nbROIs_HC_RT, nbROIs_HC_LT, nbROIs_EP_RT, nbROIs_EP_LT]
 ls_surr_thresh = [surr_thresh_HC_RT, surr_thresh_HC_LT, surr_thresh_EP_RT, surr_thresh_EP_LT]
 ls_labels = ["HC RT", "HC LT", "EP RT", "EP LT"]
@@ -314,14 +348,14 @@ ls_labels = np.array(ls_labels)
 for t in np.arange(len(ls_labels)):
     surr_thresh = ls_surr_thresh[t]
     nbROIs_sig = ls_nbROIs_sig[t]
-    ax.plot(np.arange(np.shape(surr_thresh)[0]), np.array(nbROIs_sig), marker='x', linewidth=2)
+    ax.plot(np.arange(np.shape(surr_thresh)[0]), np.array(nbROIs_sig), marker=MARKERS_GROUPS[t], linewidth=2.5, markersize=5, color=COLORS_GROUPS[t], label=ls_labels[t])
     for i, y_value in enumerate(nbROIs_sig):
-        ax.text(i, y_value, f'{y_value}', fontsize=8, ha='left', va='bottom', color='k')
-    ax.set_xlabel('Number of EEG participants'); ax.set_ylabel('#ROIs with significant SDI')
-    ax.set_xticks(np.arange(0, np.shape(surr_thresh)[0]+1))
-    ax.grid('on', alpha=.2)
-ax.legend(ls_labels, loc='upper right')
-ax.set_title('Number of significant SDI ROIs')
+        ax.text(i, y_value+0.1, f'{int(y_value)}', fontsize=9, ha='center', va='bottom', fontweight='bold')
+ax.set_xlabel('Number of EEG participants', fontsize=12, fontweight='bold'); ax.set_ylabel('# ROIs with significant SDI', fontsize=12, fontweight='bold')
+ax.set_xticks(np.arange(0, np.shape(surr_thresh)[0]+1))
+ax.grid(True, alpha=0.3, linestyle='--')
+ax.legend(fontsize=11, loc='upper right', framealpha=0.9)
+ax.set_title('Number of Significant SDI ROIs', fontsize=13, fontweight='bold', pad=15); ax.tick_params(labelsize=11)
 
 #print((np.where(surr_thresh_HC_LT[5]['SDI_sig']!=0)[0])) # 6 out of 8 patients
 #print((np.where(surr_thresh_EP_LT[5]['SDI_sig']!=0)[0])) # 7 out of 9 patients

@@ -18,35 +18,35 @@
 16,sub-20220614,multishell,,,44,44,M,HC,,,1,1,1,,,1,,1,,na,,1,,,,na,,,Data_jon
 17,sub-20221129,multishell,,,34,34,M,HC,,,1,1,1,,,1,,1,,na,,1,,,,na,,no gfa,Data_jon
 18,sub-20221130,multishell,,,23,23,F,HC,,,1,1,1,,,1,,1,,na,,1,,,,na,,no gfa,Data_jon
-19,sub-00,dsi,17.04.1987,27.04.2011,24,24,M,EP,RT,11.03.2024 - mass of the image 0 linear registration,1,1,1,1,missing,failed,missing,na,na,1,,na,,,,failed,,composite transform,DIFFUSION_GVA_BIDS
+19,sub-00,dsi,17.04.1987,27.04.2011,24,24,M,EP,RT,11.03.2024 - mass of the image 0 linear registration,0,1,1,1,missing,failed,missing,na,na,1,,na,,,,failed,,composite transform,DIFFUSION_GVA_BIDS
 20,sub-01,dsi,24.08.1986,05.02.2013,26,26,F,EP,LT,,1,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
 21,sub-02,dsi,12.04.1968,01.10.2012,44,44,M,EP,LT,,1,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
 22,sub-03,dsi,23.09.1960,11.07.2012,51,51,F,EP,RT,,1,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
-23,sub-04,dsi,,,,,,EP,,,0,1,1,1,missing,1,missing,na,,1,,na,,,,failed,,,DIFFUSION_GVA_BIDS
+23,sub-04,dsi,,,,,,,,,0,1,1,1,missing,1,missing,na,,1,,na,,,,failed,,,DIFFUSION_GVA_BIDS
 24,sub-05,dsi,24.09.1987,03.09.2010,23,23,M,EP,RT,,1,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
 25,sub-06,dsi,06.11.1998,04.06.2014,22,22,M,EP,LT,,1,1,1,1,missing,failed,missing,na,,1,,na,,,,1,,no readable log,DIFFUSION_GVA_BIDS
 26,sub-07,dsi,31.07.1961,18.09.2012,51,51,F,EP,LT,,1,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
-27,sub-08,dsi,,,,,,EP,,,0,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
+27,sub-08,dsi,,,,,,,,,0,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
 28,sub-09,dsi,28.11.1975,26.06.2012,36,36,M,EP,RT,,1,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
 29,sub-10,dsi,16.07.1983,21.08.2013,30,30,F,EP,RT,,1,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
 30,sub-11,dsi,01.01.1986,04.12.2013,27,27,M,EP,LT,,1,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
 31,sub-12,dsi,20.04.1971,01.02.2012,40,40,F,EP,LT,,1,1,1,1,missing,1,missing,na,,failed,,na,,,,1,,,DIFFUSION_GVA_BIDS
 32,sub-13,dsi,02.07.1979,11.11.2011,32,32,F,EP,RT,,1,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
 33,sub-14,dsi,02.01.1982,06.07.2012,30,30,F,EP,RT,,1,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
-34,sub-15,dsi,,,,,,EP,,,0,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
+34,sub-15,dsi,,,,,,,,,0,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
 35,sub-16,dsi,01.09.1982,03.03.2012,29,29,F,EP,RT,,1,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
 36,sub-17,dsi,16.05.1985,03.09.2012,27,27,M,EP,LT,,1,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
-37,sub-18,dsi,,,,,,EP,,,0,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
-38,sub-19,dsi,,,,,,EP,,,0,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
+37,sub-18,dsi,,,,,,,,,0,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
+38,sub-19,dsi,,,,,,,,,0,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
 39,sub-20,dsi,04.11.1970,13.04.2011,40,40,M,EP,RT,,1,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
 40,sub-21,dsi,17.06.1995,22.09.2012,17,17,F,EP,LT,,1,1,1,1,missing,failed,missing,na,,1,,na,,,,1,,reconall,DIFFUSION_GVA_BIDS
 41,sub-22,dsi,13.11.1968,07.06.2011,42,42,F,EP,RT,,1,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
-42,sub-23,dsi,,,,,,EP,,,0,1,1,1,missing,1,missing,na,,failed,,na,,,,1,,,DIFFUSION_GVA_BIDS
-43,sub-24,dsi,,,,,,EP,,,0,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
+42,sub-23,dsi,,,,,,,,,0,1,1,1,missing,1,missing,na,,failed,,na,,,,1,,,DIFFUSION_GVA_BIDS
+43,sub-24,dsi,,,,,,,,,0,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
 44,sub-25,dsi,13.02.1974,16.09.2011,37,37,F,EP,RT,,0,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
 45,sub-26,dsi,27.06.1974,12.05.2011,36,36,F,EP,RT,,0,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
 46,sub-27,dsi,18.05.1983,15.07.2011,28,28,M,EP,LT,,1,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
-47,sub-28,dsi,,,,,,EP,,,0,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
+47,sub-28,dsi,,,,,,,,,0,1,1,1,missing,1,missing,na,,1,,na,,,,1,,,DIFFUSION_GVA_BIDS
 48,sub-15513ea82b3b,dsi,,09.07.2010,29,29,F,HC,,,1,1,1,,,1,,na,,1,,na,,,,1,,,DSI_EEG_HC_BIDS
 49,sub-1abfe5623910,dsi,02.01.1972,08.01.2010,28,28,M,HC,,,1,1,1,,,failed,,na,,failed,,na,,,,tbc,,bval not found,DSI_EEG_HC_BIDS
 50,sub-244af16bf699,dsi,,27.01.2010,27,27,F,HC,,,1,1,1,,,1,,na,,1,,na,,,,tbc,,,DSI_EEG_HC_BIDS

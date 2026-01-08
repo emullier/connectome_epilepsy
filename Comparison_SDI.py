@@ -238,7 +238,7 @@ labels = pd.read_csv('./DATA/label/labels_rois_118.csv')
 #labels = df_tmp['Label Lausanne2008']
 df_SDI_3part_sig = pd.DataFrame()
 
-mean_SDI_sig = surr_thresh_Iso_LT[2]['mean_SDI']*surr_thresh_Iso_LT[2]['SDI_sig']
+mean_SDI_sig = surr_thresh_Iso_LT[2]['mean_SDI']*np.abs(surr_thresh_Iso_LT[2]['SDI_sig'])
 idxs = np.where(mean_SDI_sig>0)[0]
 #df_SDI_3part_sig['ROIs'] = labels['labels'].iloc[idxs]
 df_SDI_3part_sig['ROIs'] = labels['Label Lausanne2008'].iloc[idxs]

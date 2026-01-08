@@ -90,7 +90,7 @@ for l, lateralization in enumerate(ls_lateralization):
     np.save('./OUTPUT/DIFF_PROC/nbROIs_sig_%s_%s.npy'%(tracking, lateralization), nbROIs_sig)
 
     thr = 2
-    plot_rois_pyvista(surr_thresh[thr]['mean_SDI']*surr_thresh[thr]['SDI_sig'], scale, './FIGURES/DIFF_PROC/', vmin=-1, vmax=1, label='SDImean_thr%d_%s_%s'%(thr, tracking, lateralization))
+    plot_rois_pyvista(surr_thresh[thr]['mean_SDI']*np.abs(surr_thresh[thr]['SDI_sig']), scale, './FIGURES/DIFF_PROC/', vmin=-1, vmax=1, label='SDImean_thr%d_%s_%s'%(thr, tracking, lateralization))
 
 
 
