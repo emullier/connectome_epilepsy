@@ -443,26 +443,8 @@ def plot_rois_pyvista_noaxes(roi_values, scale, out_dir, center_at_zero=False, l
         cropped = img_rgba.crop((0, crop_pixels, width, height - crop_pixels))
         cropped_images.append(cropped)
     
-    # Calculate new grid dimensions after cropping
-    cropped_height = cropped_images[0].size[1]
-    grid_width = img_size * 2
-    grid_height = cropped_height * 2
-    # Create transparent background
-    grid_img = Image.new('RGBA', (grid_width, grid_height), (255, 255, 255, 0))
-    
-    for idx, img in enumerate(cropped_images):
-        row = idx // 2
-        col = idx % 2
-        # Paste each cropped image at the correct position
-        grid_img.paste(img, (col * img_size, row * cropped_height), img)
-    
-    # Save the stitched image
-    save_fname = os.path.join(out_dir, f'{label}.{fmt}')
-    print(f"Saving figure to: {save_fname}")
-    grid_img.save(save_fname)
-
-    # Create and save a separate colorbar image
-    colorbar_plotter = pv.Plotter(shape=(1, 1), off_screen=True, window_size=(200, 600))
+    # Create colorbar image
+    colorbar_plotter = pv.Plotter(shape=(1, 1), off_screen=True, window_size=(150, 600))
     colorbar_plotter.subplot(0, 0)
     
     # Create a dummy mesh just to generate the colorbar
@@ -473,14 +455,38 @@ def plot_rois_pyvista_noaxes(roi_values, scale, out_dir, center_at_zero=False, l
     
     # Add a large, centered colorbar
     colorbar_plotter.add_scalar_bar(title='', vertical=True, title_font_size=16, label_font_size=14,
-                                   position_x=0.3, position_y=0.1, width=0.4, height=0.8, bold=True)
+                                   position_x=0.2, position_y=0.15, width=0.6, height=0.7, bold=True)
     
-    # Save the colorbar as a separate image
-    colorbar_fname = os.path.join(out_dir, f'{label}_colorbar.{fmt}')
-    colorbar_img = colorbar_plotter.screenshot(return_img=True)
-    Image.fromarray(colorbar_img).save(colorbar_fname)
-    print(f"Saving colorbar to: {colorbar_fname}")
+    # Get colorbar as image
+    colorbar_img_array = colorbar_plotter.screenshot(return_img=True)
+    colorbar_img = Image.fromarray(colorbar_img_array).convert('RGBA')
     colorbar_plotter.close()
+    
+    # Calculate new grid dimensions after cropping - add space for colorbar
+    cropped_height = cropped_images[0].size[1]
+    colorbar_width = 150
+    grid_width = img_size * 2 + colorbar_width
+    grid_height = cropped_height * 2
+    
+    # Create transparent background
+    grid_img = Image.new('RGBA', (grid_width, grid_height), (255, 255, 255, 0))
+    
+    # Paste brain images in 2x2 grid
+    for idx, img in enumerate(cropped_images):
+        row = idx // 2
+        col = idx % 2
+        # Paste each cropped image at the correct position
+        grid_img.paste(img, (col * img_size, row * cropped_height), img)
+    
+    # Paste colorbar on the right side, vertically centered
+    colorbar_resized = colorbar_img.resize((colorbar_width, grid_height), Image.Resampling.LANCZOS)
+    # Don't use the image as its own mask - paste without mask parameter
+    grid_img.paste(colorbar_resized, (img_size * 2, 0))
+    
+    # Save the combined image
+    save_fname = os.path.join(out_dir, f'{label}.{fmt}')
+    print(f"Saving figure to: {save_fname}")
+    grid_img.save(save_fname)
 
     return save_fname
 

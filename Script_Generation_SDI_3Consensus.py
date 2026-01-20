@@ -47,16 +47,15 @@ COLORS_COMPARISON = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#e3
 MARKERS_COMPARISON = ['o', 's', '^']  # HC, EP, IND
 
 # Get the directory paths relative to the script location
-script_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(script_dir)
+project_root = os.path.dirname(os.path.abspath(__file__))
 
 scale = 2
 example_dir = os.path.join(project_root, "DATA/EEG")
 infoGVA_path = os.path.join(project_root, 'DEMOGRAPHIC/info_dsi_multishell_merged_csv.csv')
 
 # Create output directories
-output_dir = os.path.join(project_root, 'OUTPUT/Manuscript/')
-figures_dir = os.path.join(project_root, 'FIGURES/Manuscript/')
+output_dir = os.path.join(project_root, 'OUTPUT/')
+figures_dir = os.path.join(project_root, 'FIGURES/')
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 if not os.path.exists(figures_dir):
@@ -128,13 +127,10 @@ for group in ls_groups_geneva:
         SDI = SDI[:, idxs_lat]
         np.save(os.path.join(output_dir, f'SDI_{group}_{lateralization}.npy'), SDI)
         
-        # Plot mean SDI
-        plot_rois_pyvista_noaxes(np.mean(SDI, axis=1), scale, figures_dir, 
-                                vmin=-2, vmax=2, label=f'SDImean_{group}_{lateralization}')
-        
+      
         # Surrogate part - use same strategy as script 02: load from EPvsCTRL folder with standard path
         nbSurr = 100
-        surr_path = os.path.join(project_root, f'OUTPUT/EPvsCTRL/SDI_surr_{metric}_{group}_{dwi}_{lateralization}.npy')
+        surr_path = os.path.join(project_root, f'OUTPUT/SDI_surr_{metric}_{group}_{dwi}_{lateralization}.npy')
         if not os.path.exists(surr_path):
             SDI_surr = gsp.surrogate_sdi(Q, Vlow, Vhigh, example_dir, nbSurr=nbSurr, example=False)
             np.save(surr_path, SDI_surr)
@@ -157,10 +153,10 @@ for group in ls_groups_geneva:
         np.save(os.path.join(output_dir, f'nbROIs_sig_{group}_{lateralization}.npy'), nbROIs_sig)
         
         # Plot thresholds
-        for thr in [2, 5]:
-            plot_rois_pyvista_noaxes(surr_thresh[thr]['mean_SDI']*np.abs(surr_thresh[thr]['SDI_sig']), 
+        thr = 5
+        plot_rois_pyvista_noaxes(surr_thresh[thr]['mean_SDI']*np.abs(surr_thresh[thr]['SDI_sig']), 
                                     scale, figures_dir, vmin=-1, vmax=1, 
-                                    label=f'SDImean_thr{thr}_{group}_{lateralization}')
+                                    label=f'Fig2_SDImean_thr{thr}_{group}_{lateralization}')
 
 # ============================================================================
 # PART 2: Load IND (27 healthy controls) data from code 07
@@ -208,9 +204,6 @@ for lateralization in ls_lateralization:
     SDI = SDI[:, idxs_lat]
     np.save(os.path.join(output_dir, f'SDI_IND_{lateralization}.npy'), SDI)
     
-    # Plot mean SDI
-    plot_rois_pyvista_noaxes(np.mean(SDI, axis=1), scale, figures_dir, 
-                            vmin=-2, vmax=2, label=f'SDImean_IND_{lateralization}')
     
     # Surrogate part
     nbSurr = 100
@@ -237,10 +230,10 @@ for lateralization in ls_lateralization:
     np.save(os.path.join(output_dir, f'nbROIs_sig_IND_{lateralization}.npy'), nbROIs_sig)
     
     # Plot thresholds
-    for thr in [2, 5]:
-        plot_rois_pyvista_noaxes(surr_thresh[thr]['mean_SDI']*np.abs(surr_thresh[thr]['SDI_sig']), 
+    thr = 5
+    plot_rois_pyvista_noaxes(surr_thresh[thr]['mean_SDI']*np.abs(surr_thresh[thr]['SDI_sig']), 
                                 scale, figures_dir, vmin=-1, vmax=1, 
-                                label=f'SDImean_thr{thr}_IND_{lateralization}')
+                                label=f'Fig2_SDImean_thr{thr}_IND_{lateralization}')
 
 # ============================================================================
 # PART 3: Create comprehensive comparison table
@@ -336,7 +329,7 @@ for row_idx, side in enumerate(["LT", "RT"]):
         ax.text(0.05, 0.92, f"r = {r:.2f}\np = {p:.3f}", transform=ax.transAxes,
                 fontsize=10, bbox=dict(boxstyle='round', facecolor='white', alpha=0.7, edgecolor='gray'))
 
-corr_path = os.path.join(figures_dir, 'corr_mean_SDI_all.png')
+corr_path = os.path.join(figures_dir, 'FigS3_corr_mean_SDI_all.png')
 plt.savefig(corr_path, dpi=300, bbox_inches='tight')
 print(f"Saved: {os.path.basename(corr_path)}")
 
@@ -396,7 +389,7 @@ for i, (g1, g2, v1, v2, x1, x2) in enumerate(pairs_stats):
     ax[1].text((x1 + x2) / 2, y + 0.025 * y_base, f"p = {pval:.3f}", ha='center', va='bottom', fontsize=9)
     print(f"Cutoff comparison {g1} vs {g2}: U={stat:.2f}, p={pval:.4f}")
 
-plt.savefig(os.path.join(figures_dir, 'cutoff_comparison.png'), dpi=300, bbox_inches='tight')
+plt.savefig(os.path.join(figures_dir, 'FigS2_cutoff_comparison.png'), dpi=300, bbox_inches='tight')
 print("Saved: cutoff_comparison.png")
 #plt.close()
 
@@ -430,7 +423,7 @@ ax.set_title('Number of Significant SDI ROIs per Threshold', fontsize=13, fontwe
 ax.legend(fontsize=11, loc='best', ncol=3, framealpha=0.9)
 ax.tick_params(labelsize=10)
 
-plt.savefig(os.path.join(figures_dir, 'nbROIs_comparison.png'), dpi=300, bbox_inches='tight')
+plt.savefig(os.path.join(figures_dir, 'FigS1_nbROIs_comparison.png'), dpi=300, bbox_inches='tight')
 print("Saved: nbROIs_comparison.png")
 #plt.close()
 
