@@ -439,51 +439,39 @@ similarity_matched = np.abs(similarity_matched)
 print("Loading EEG data and SDI summaries...")
 X_RS_allPat = gsp.load_EEG_example(example_dir)
 lat_labels = np.array([str(patient['lat'][0]) for patient in X_RS_allPat])
-lateralizations = {
-    'LT': np.where(lat_labels == 'Ltle')[0],
-    'RT': np.where(lat_labels == 'Rtle')[0],
-}
+lateralizations = {'LT': np.where(lat_labels == 'Ltle')[0],'RT': np.where(lat_labels == 'Rtle')[0],}
 nbSurr = 100
 
-methods = {
-    'SC_HC_ref': Q_ref,
-    'SC_IND': Q_ind,
-    'Gen_Procrustes': Qind_rotated,
-    'Hungarian': Qind_matched,
-}
-
+methods = {'SC_HC_ref': Q_ref,'SC_IND': Q_ind,'Gen_Procrustes': Qind_rotated,'Hungarian': Qind_matched,}
 sdi_results = {}
-method_file_prefixes = {
-    'SC_HC_ref': 'SC_HC_ref',
-    'SC_IND': 'SC_IND',
-    'Gen_Procrustes': 'Gen_Procrustes',
-    'Hungarian': 'Hungarian',
-}
-cutoff_file_prefixes = {
-    'SC_HC_ref': 'HC',
-    'SC_IND': 'IND',
-    'Gen_Procrustes': 'Gen_Procrustes',
-    'Hungarian': 'Hungarian',
-}
+method_file_prefixes = {'SC_HC_ref': 'SC_HC_ref','SC_IND': 'SC_IND', 'Gen_Procrustes': 'Gen_Procrustes', 'Hungarian': 'Hungarian',}
+cutoff_file_prefixes = {'SC_HC_ref': 'HC','SC_IND': 'IND', 'Gen_Procrustes': 'Gen_Procrustes','Hungarian': 'Hungarian',}
 
 for method_name, Q_method in methods.items():
     for lateralization in ['LT', 'RT']:
-        surr_thresh_path = os.path.join(output_dir, f"SDI_surr_thresh_{method_file_prefixes[method_name]}_{lateralization}.npy")
-        surr_thresh = np.load(surr_thresh_path, allow_pickle=True)
 
+        SDI = np.zeros((118, len(X_RS_allPat)))
         cutoff_values = []
-        for patient in X_RS_allPat:
-            _, NN, _, _ = gsp.get_cutoff_freq(Q_method, patient['X_RS'])
+        for p,patient in enumerate(X_RS_allPat):
+            X_RS = X_RS_allPat[p]['X_RS']
+            PSD, NN, Vlow, Vhigh = gsp.get_cutoff_freq(Q_method, patient['X_RS'])
             cutoff_values.append(NN)
+            SDI[:,p], X_c_norm, X_d_norm, SD_hat = gsp.compute_SDI(X_RS, Q_method)
         cutoff_values = np.array(cutoff_values)
 
         cutoff_path = os.path.join(output_dir, f"cutoff_{cutoff_file_prefixes[method_name]}_{lateralization}.npy")
         np.save(cutoff_path, cutoff_values)
+        
+        surr_thresh_path = os.path.join(output_dir, f"SDI_surr_thresh_{method_file_prefixes[method_name]}_{lateralization}.npy")
+        if os.path.exists(surr_thresh_path):
+            surr_thresh = np.load(surr_thresh_path, allow_pickle=True)
+        else:
+            SDI_surr = gsp.surrogate_sdi(Q_method, Vlow, Vhigh, example_dir, nbSurr=nbSurr, example=False)
+            #surr_thresh, SDI_sig_subjectwise = gsp.select_significant_sdi(SDI, SDI_surr[:,:,idxs_lat])
+            surr_thresh, SDI_sig_subjectwise = gsp.select_significant_sdi(SDI, SDI_surr)
+            np.save(surr_thresh_path, surr_thresh)
 
-        sdi_results[f"{method_name}_{lateralization}"] = {
-            'surr_thresh': surr_thresh,
-            'cutoff_frequencies': cutoff_values,
-        }
+        sdi_results[f"{method_name}_{lateralization}"] = {'surr_thresh': surr_thresh,'cutoff_frequencies': cutoff_values,}
 
 
 # ============================================================================
@@ -557,7 +545,6 @@ for lateralization in ['LT', 'RT']:
     for method_name in ['SC_HC_ref', 'SC_IND', 'Gen_Procrustes', 'Hungarian']:
         key = f"{method_name}_{lateralization}"
         surr_thresh = sdi_results[key]['surr_thresh']
-        
         # Apply same formula as Generation script: mean_SDI * abs(SDI_sig)
         thresholded_sdi = surr_thresh[thr]['mean_SDI'] * np.abs(surr_thresh[thr]['SDI_sig'])
         # plot_rois_pyvista_noaxes(thresholded_sdi, scale=2, out_dir=figures_dir, vmin=-2, vmax=2, center_at_zero=True, label=f'FigS7_SDI_thr{thr}_{method_name}_{lateralization}',cmap='coolwarm',fmt='png')
@@ -570,7 +557,6 @@ for lateralization in ['LT', 'RT']:
     for method_name in ['SC_HC_ref', 'SC_IND', 'Gen_Procrustes', 'Hungarian']:
         key = f"{method_name}_{lateralization}"
         surr_thresh = sdi_results[key]['surr_thresh']
-        
         # Apply same formula as Generation script: mean_SDI * abs(SDI_sig)
         thresholded_sdi = surr_thresh[thr]['mean_SDI'] * np.abs(surr_thresh[thr]['SDI_sig'])
         #plot_rois_pyvista_noaxes(thresholded_sdi, scale=2, out_dir=figures_dir,vmin=-2,vmax=2,center_at_zero=True,label=f'FigS7_SDI_thr{thr}_{method_name}_{lateralization}',cmap='coolwarm',fmt='png')
@@ -626,10 +612,7 @@ labels_118 = np.array(df_roi['Label Lausanne2008'])
 
 # Collect all indices that are significant in any method or lateralization (threshold = 5)
 all_idx = set()
-for key in [
-    'SC_HC_ref_LT', 'SC_IND_LT', 'Gen_Procrustes_LT', 'Hungarian_LT',
-    'SC_HC_ref_RT', 'SC_IND_RT', 'Gen_Procrustes_RT', 'Hungarian_RT'
-]:
+for key in ['SC_HC_ref_LT', 'SC_IND_LT', 'Gen_Procrustes_LT', 'Hungarian_LT', 'SC_HC_ref_RT', 'SC_IND_RT', 'Gen_Procrustes_RT', 'Hungarian_RT']:
     surr_thresh = sdi_results[key]['surr_thresh']
     sig_idx = np.where(surr_thresh[thr]['SDI_sig'] != 0)[0]
     all_idx.update(sig_idx)
