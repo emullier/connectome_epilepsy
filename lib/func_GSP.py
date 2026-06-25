@@ -78,10 +78,10 @@ def get_cutoff_freq(sc, data):
     ## mean across subjects/epochs
     mPSD = np.mean(PSD, axis=1);
     ## total area under the curve
-    AUCTOT = np.trapz(mPSD[:sc.shape[0]]) ##total area under the curve  
+    AUCTOT = np.trapezoid(mPSD[:sc.shape[0]]) ##total area under the curve  
     i=1; AUC=0;
     while AUC<AUCTOT/2:
-        i=i+1; AUC=np.trapz(mPSD[0:i])
+        i=i+1; AUC=np.trapezoid(mPSD[0:i])
     NN=i-1; #CUTOFF FREQUENCY : number of low frequency eigenvalues to consider in order to have the same energy as the high freq ones
     ## split structural harmonics in high/low frequency
     Vlow=np.zeros(np.shape(sc)); Vhigh=np.zeros(np.shape(sc))
