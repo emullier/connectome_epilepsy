@@ -1,10 +1,14 @@
+# Large/raw data
+DATA/Individual_Connectomes.mat
+DATA/
 
-*.png
-*.nii
-*.nii.gz
-*.npy
-*.fig
-DATA/*
-DEMOGRAPHIC/*
-FIGURES/*
-OUTPUT/*
+# Python cache
+__pycache__/
+*.pyc
+
+# Generated outputs
+OUTPUT/
+FIGURES/
+
+# macOS
+.DS_Store
