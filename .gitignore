@@ -1,0 +1,14 @@
+# Large/raw data
+DATA/Individual_Connectomes.mat
+DATA/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Generated outputs
+OUTPUT/
+FIGURES/
+
+# macOS
+.DS_Store
