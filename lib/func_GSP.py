@@ -1,53 +1,15 @@
 
-
 import os
 import numpy as np
-import scipy.io as sio 
-import scipy
 import pygsp
+import scipy
+import scipy.io as sio
 from scipy.stats import binom
 import h5py
-import matplotlib.pyplot as plt
+from lib.func_plot import plot_rois_pyvista_noaxes
 from scipy.optimize import linear_sum_assignment
-
-def extract_ctx_ROIs(Mat):
-    # Get the number of regions in the matrix (assuming the matrix is 3D: nbROIs x nbROIs x N)
-    nbROIs = np.shape(Mat)[0]
-
-    if Mat.ndim==2:
-        Mat = Mat[:, :, np.newaxis]
-
-    # Check if the number of ROIs is odd (remove brainstem if necessary)
-    if nbROIs % 2 != 0:
-        Mat = Mat[:-1, :-1, :]  # Remove the last region (brainstem)
-        nbROIs -= 1  # Adjust the number of ROIs after removing brainstem
-
-    # Divide the matrix into two halves
-    half_nbROIs = nbROIs // 2
-    right_hemisphere_indices = np.arange(half_nbROIs)
-    left_hemisphere_indices = np.arange(half_nbROIs, nbROIs)
-
-    # Define the number of cortical regions (57 per hemisphere)
-    cortical_regions_count = 57
-
-    # Extract indices for cortical regions
-    right_cortical_indices = right_hemisphere_indices[:cortical_regions_count]
-    left_cortical_indices = left_hemisphere_indices[:cortical_regions_count]
-
-    # Combine indices
-    cortical_indices = np.concatenate([right_cortical_indices, left_cortical_indices])
-
-    # Extract the submatrix corresponding to cortical regions for all 3D slices
-    cortical_ROIs = Mat[np.ix_(cortical_indices, cortical_indices, np.arange(Mat.shape[2]))]
-
-    # Plot the first slice of the 3D matrix (for example)
-    fig, axs = plt.subplots(1, 1)
-    axs.imshow(cortical_ROIs[:, :, 0])  # Visualize the first 2D slice of the 3D matrix
-
-    cortical_ROIs = np.squeeze(cortical_ROIs)
-
-    return cortical_ROIs
-
+from scipy.spatial import procrustes
+import matplotlib.pyplot as plt
 
 def normalize_Lap(A):
     ''' Takes the adjacency matrix as input and returns the corresponding symmetric normalized Laplacian matrix'''
@@ -57,13 +19,49 @@ def normalize_Lap(A):
     epsilon = 1e-10
     D = np.where(D == 0, epsilon, D)
     D = np.diag(D)
-    Dn = np.power(D, -0.5)
-    Dn = np.diag(np.diag(Dn))
+    #Dn = np.power(D, -0.5)
+    #Dn = np.diag(np.diag(Dn))
+    Dn = np.power(D, -0.5, where=D>0)
+    Dn[D == 0] = 0
     # symmetric normalize Adjacency
     An = Dn@A@Dn
     Ln = np.diag(np.full(len(An),1)) - An
     # Ln = np.diag(np.sum(An,axis=1)) - An
     return Ln, An
+
+def cons_normalized_lap(Mat, EucDist, plot=False):
+    tmp = Mat
+    diag_zeros = np.diag(np.diag(tmp))
+    tmp = tmp - diag_zeros
+    Ln, An  = normalize_Lap(tmp)
+    sc = pygsp.graphs.Graph(tmp, lap_type='normalized', coords=EucDist)
+    sc.compute_fourier_basis()
+    P = sc.e
+    Q = sc.U
+    return P, Q, Ln, An
+
+
+def load_EEG_example(example_dir):
+    func_path = os.path.join(example_dir,'func_data.mat')
+    func = sio.loadmat(func_path)['func_data']
+    names = np.array([item[0] for item in func['name'].flatten()])
+    X_RS_allPat = []
+    for n, name in enumerate(names):
+        time_w = [.3, .7]
+        data_sub = func[0][n]
+        sub = data_sub[0]; lat = data_sub[1]; ROI_traces = data_sub[2][0]
+        elec = ROI_traces['elec']; time = ROI_traces['time']; fsample = ROI_traces['fsample'][0][0][0]
+        label = ROI_traces['label']; trial = ROI_traces['trial'][0].flatten()
+        
+        ##define cut-off frequency for each subject on the 400 ms around the IED
+        for t in np.arange(len(trial)):
+            tmp_trial = trial[t]
+            tmp = tmp_trial[:,int(time_w[0]*fsample-1):int(time_w[1]*fsample-1)]
+            if t==0:
+                X_RS = np.zeros((np.shape(tmp)[0], np.shape(tmp)[1], len(trial)))
+            X_RS[:,:,t] = tmp
+        X_RS_allPat.append({'name': name, 'X_RS': X_RS, 'lat': lat})
+    return X_RS_allPat
 
 def get_cutoff_freq(sc, data):
     X_hat_L = np.zeros(np.shape(data))
@@ -89,6 +87,20 @@ def get_cutoff_freq(sc, data):
     Vlow[:,:NN]=sc[:,:NN] #low frequencies = coupled
     
     return PSD,NN,Vlow, Vhigh
+
+
+
+def compute_SDI(X_RS, scU):
+    ## X_RS dimensions (nROIs, ntimepoints, ntrials)
+    ## scU Laplacian/eigenvectors
+    zX_RS = scipy.stats.zscore(X_RS, axis=None)
+    [PSD,NN, Vlow, Vhigh] = get_cutoff_freq(scU, zX_RS); #split harmonics in high and low frequency and get PSD
+    ## get the part of the signal that is COUPLED and DECOUPLED from the structure
+    SD_hat, X_c, X_d, N_c, N_d, SDI = filter_signal_with_harmonics(scU,zX_RS,Vlow,Vhigh)
+    ## normalise X_c and X_d and get Broadcasting Direction
+    BD, X_c_norm, X_d_norm = getBD(zX_RS,X_c,X_d)
+    #SDI=np.mean(N_d,1)/np.mean(N_c,1);#(np.shape(SDI_surr))
+    return SDI, X_c_norm, X_d_norm, SD_hat
 
 def filter_signal_with_harmonics(sc,data,Vlow,Vhigh):
     ## sc = harmonics of the structural connectome [ROI x HARM]
@@ -133,98 +145,6 @@ def getBD(zX_RS,X_c,X_d):
     BD=(np.mean(X_d_norm,axis=1)- np.transpose(np.mean(X_c_norm,axis=1))) # BDnorm
 
     return BD, X_c_norm, X_d_norm
-
-
-def compute_SDI(X_RS, scU):
-    ## X_RS dimensions (nROIs, ntimepoints, ntrials)
-    ## scU Laplacian/eigenvectors
-    zX_RS = scipy.stats.zscore(X_RS, axis=None)
-    [PSD,NN, Vlow, Vhigh] = get_cutoff_freq(scU, zX_RS); #split harmonics in high and low frequency and get PSD
-    ## get the part of the signal that is COUPLED and DECOUPLED from the structure
-    SD_hat, X_c, X_d, N_c, N_d, SDI = filter_signal_with_harmonics(scU,zX_RS,Vlow,Vhigh)
-    ## normalise X_c and X_d and get Broadcasting Direction
-    BD, X_c_norm, X_d_norm = getBD(zX_RS,X_c,X_d)
-    #SDI=np.mean(N_d,1)/np.mean(N_c,1);#(np.shape(SDI_surr))
-    return SDI, X_c_norm, X_d_norm, SD_hat
-
-def load_EEG_example(example_dir):
-    func_path = os.path.join(example_dir,'func_data.mat')
-    func = sio.loadmat(func_path)['func_data']
-    names = np.array([item[0] for item in func['name'].flatten()])
-    X_RS_allPat = []
-    for n, name in enumerate(names):
-        time_w = [.3, .7]
-        data_sub = func[0][n]
-        sub = data_sub[0]; lat = data_sub[1]; ROI_traces = data_sub[2][0]
-        elec = ROI_traces['elec']; time = ROI_traces['time']; fsample = ROI_traces['fsample'][0][0][0]
-        label = ROI_traces['label']; trial = ROI_traces['trial'][0].flatten()
-        
-        ##define cut-off frequency for each subject on the 400 ms around the IED
-        for t in np.arange(len(trial)):
-            tmp_trial = trial[t]
-            tmp = tmp_trial[:,int(time_w[0]*fsample-1):int(time_w[1]*fsample-1)]
-            if t==0:
-                X_RS = np.zeros((np.shape(tmp)[0], np.shape(tmp)[1], len(trial)))
-            X_RS[:,:,t] = tmp
-        X_RS_allPat.append({'name': name, 'X_RS': X_RS, 'lat': lat})
-    return X_RS_allPat
-
-
-def surrogate_sdi(scU,  Vlow, Vhigh, example_dir, nbSurr=1000, example=False): 
-    X_RS_allPat = load_EEG_example(example_dir)
-    #SDI_surr = np.zeros((114, 19, len(X_RS_allPat)))
-    SDI_surr = np.zeros((118, 19, len(X_RS_allPat)))
-    
-    if example==True:
-        SDI_surr = np.zeros((118, 19, len(X_RS_allPat)))
-
-        with h5py.File(os.path.join(example_dir, 'PHI.mat'), 'r') as f:
-            tmp = f['PHI'][()]
-        #PHI = utils.extract_ctx_ROIs(tmp)
-        PHI = tmp
-        nbSurr = np.shape(PHI)[2]
-
-        GSP2_surr = sio.loadmat(os.path.join(example_dir,'data_GSP2_surr.mat'))
-        GSP2_surr = GSP2_surr['data_GSP2_surr'][0]
-
-        for s in np.arange(np.shape(GSP2_surr)[0]):
-            sub = GSP2_surr[s][0]
-            lat = GSP2_surr[s][1]
-            surr = GSP2_surr[s][2][0][0][0]
-            #idxs_ctxs = np.concatenate((np.arange(0,57), np.arange(60,117)))
-            #SDI_surr[:,:,s] = surr[idxs_ctxs,:]
-            SDI_surr[:,:,s] = surr
-
-    else:
-        #PHI = np.zeros((np.shape(scU)[0], np.shape(scU)[0], nbSurr))
-        #for n in np.arange(nbSurr):
-        #    # %randomize sign of Fourier coefficients
-        #    PHIdiag= np.round(np.random.rand(np.shape(scU)[0]))
-        #    PHIdiag[np.where(PHIdiag==0)] = -1
-        #    PHI[:,:,n] = np.diag(PHIdiag)
-        
-        with h5py.File(os.path.join(example_dir, 'PHI.mat'), 'r') as f:
-            tmp = f['PHI'][()]
-        #PHI =extract_ctx_ROIs(tmp)
-        PHI = tmp
-        nbSurr = np.shape(PHI)[2]
-
-        for s in np.arange(len(X_RS_allPat)):
-            for n in np.arange(19):
-                print('sub-%d, n%d'%(s,n))
-                X_RS = X_RS_allPat[s]['X_RS']
-                #idxs_tmp = np.concatenate((np.arange(0,57), np.arange(59,116)))
-                #X_RS = X_RS[idxs_tmp, :, :]
-                zX_RS = scipy.stats.zscore(X_RS, axis=None)
-                XrandS = np.zeros(np.shape(X_RS))
-                PHI_curr = np.squeeze(PHI[:,:,n])
-                for p in np.arange(np.shape(X_RS)[2]):
-                    zX_RS_curr = scipy.stats.zscore(zX_RS[:,:,p])
-                    XrandS[:,:,p] = scU@PHI_curr@np.transpose(scU)@zX_RS_curr
-                    #  X_hat=M'X, normally reconstructed signal would be Xrecon=M*X_hat=MM'X, instead of M, M*PHI is V with randomized signs
-                SD_hat, X_c, X_d, N_c, N_d, SDI = filter_signal_with_harmonics(scU, XrandS, Vlow, Vhigh)
-                SDI_surr[:,n,s]=np.mean(N_d,1)/np.mean(N_c,1);#(np.shape(SDI_surr))
-    return SDI_surr
 
 
 def select_significant_sdi(SDI, SDI_surr):
@@ -276,186 +196,133 @@ def select_significant_sdi(SDI, SDI_surr):
     return surr_thresh, SDI_sig_subjectwise
 
 
-def cons_normalized_lap(Mat, EucDist, plot=False):
-    tmp = Mat
-    diag_zeros = np.diag(np.diag(tmp))
-    tmp = tmp - diag_zeros
-    Ln, An  = normalize_Lap(tmp)
-    sc = pygsp.graphs.Graph(tmp, lap_type='normalized', coords=EucDist)
-    sc.compute_fourier_basis()
-    P = sc.e
-    Q = sc.U
-    return P, Q, Ln, An
-
-def rotation_procrustes(Q_all, P_all,  plot=False, p=''):
-    if np.shape(Q_all)[2]>1:
-        Q_all_rotated = np.zeros(np.shape(Q_all))
-        Q_all_new = np.zeros(np.shape(Q_all))
-        Q_all_rotated[:,:,0] = Q_all[:,:,0]
-        R_all = np.zeros(np.shape(Q_all))
-        scale_R = np.zeros(np.shape(Q_all)[2])
-        Q_all[np.isnan(Q_all)]=0; Q_all[np.isinf(Q_all)]=0
-
-        for i in range(1, np.shape(Q_all)[2]):
-            Q_all_new[:,:,i], Q_all_rotated[:,:,i], disparity = scipy.spatial.procrustes(Q_all[:,:,0], Q_all[:,:,i])
-        ### take the average of the rotated eigenvectors
-        Q_mean_rotated = np.mean(Q_all_rotated,axis=2)
-        ###second round of Procrustes transformation
-        P_all_rotated = np.zeros((np.shape(Q_all)[0], np.shape(Q_all)[2]))
-        for i in range(1, np.shape(Q_all)[2]):
-            Q_all[:,:,i], Q_all_rotated[:,:,i], disparity = scipy.spatial.procrustes(Q_mean_rotated, Q_all[:,:,i])
-            P_all_rotated[:,i] = P_all[:,i]        
-            Q_mean_rotated = np.mean(Q_all_rotated,axis=2)
-            P_mean = np.mean(P_all,axis=1); P_mean_rotated = np.mean(P_all_rotated, axis=1)
-
-
-        if plot==True:
-            fig, ax = plt.subplots(2,2, figsize=(10,3))            
-            ax[0,0].imshow(Q_mean_rotated,  extent = [0,np.shape(Q_all)[2],0,np.shape(Q_all)[2]], aspect='auto', cmap='jet', vmin = -0.1,vmax=0.1)
-            ax[0,0].set_title('Average of rotated eigenvectors');  ax[0,0].set_aspect('equal')
-            cax1 = ax[1,0].imshow(np.mean(Q_all, axis=2),  extent = [0,np.shape(Q_all)[2],0,np.shape(Q_all)[2]], aspect='auto', cmap='jet', vmin = -0.1,vmax=0.1)
-            ax[1,0].set_title('Average of original eigenvectors'); ax[1,0].set_aspect('equal')
-            
-            #gs = ax[0, 2].get_gridspec()
-            #for a in [ax[0, 2], ax[1, 2]]:
-            #    a.remove()
-            #ax_big = fig.add_subplot(gs[:, 2])
-            #ax_big.plot(range(np.shape(Q_all)[0]), P_mean, range(np.shape(Q_all)[0]), P_mean_rotated)
-            #ax_big.set_title('Original and Rotated Eigenvectors '); ax_big.set_xlabel('eigenvalue index'); ax_big.set_ylabel('eigenvalues'); ax_big.legend(['Original Eigenvalues', 'Rotated Eigenvalues'])
-
-        A = Q_all[:,:,0].T; B = Q_all[:,:,1].T; A_cos = np.dot(A, B.T)
-        if plot==True:
-            ax[0,1].imshow(A_cos,cmap = 'seismic',vmin = -1,vmax=1)
-            ax[0,1].set_title('Cosine Similarity Before Rotation'); ax[0,1].set_xlabel('Subject 1 eigenvectors'), ax[0,1].set_ylabel('Subject 2 eigenvectors')
-        
-        A = Q_all_rotated[:,:,0].T; B = Q_all_rotated[:,:,1].T; A_cos = np.dot(A,B.T)
-        if plot==True:
-            ax[1,1].imshow(A_cos,cmap = 'seismic', vmin = -1,vmax=1); ax[1,1].set_title('Cosine Similarity After Rotation'); ax[1,1].set_xlabel('Subject 1 eigenvectors'); ax[1,1].set_ylabel('Subject 2 eigenvectors')        
-            fig.suptitle('%s'%p); plt.show(block=False)
-            plt.savefig('./public/static/images/RotationProcrustes%s.png'%p)
+def surrogate_sdi(scU,  Vlow, Vhigh, example_dir, nbSurr=1000, example=False): 
+    X_RS_allPat = load_EEG_example(example_dir)
+    #SDI_surr = np.zeros((114, 19, len(X_RS_allPat)))
+    SDI_surr = np.zeros((118, 19, len(X_RS_allPat)))
     
+    if example==True:
+        SDI_surr = np.zeros((118, 19, len(X_RS_allPat)))
+
+        with h5py.File(os.path.join(example_dir, 'PHI.mat'), 'r') as f:
+            tmp = f['PHI'][()]
+        #PHI = utils.extract_ctx_ROIs(tmp)
+        PHI = tmp
+        nbSurr = np.shape(PHI)[2]
+
+        GSP2_surr = sio.loadmat(os.path.join(example_dir,'data_GSP2_surr.mat'))
+        GSP2_surr = GSP2_surr['data_GSP2_surr'][0]
+
+        for s in np.arange(np.shape(GSP2_surr)[0]):
+            sub = GSP2_surr[s][0]
+            lat = GSP2_surr[s][1]
+            surr = GSP2_surr[s][2][0][0][0]
+            #idxs_ctxs = np.concatenate((np.arange(0,57), np.arange(60,117)))
+            #SDI_surr[:,:,s] = surr[idxs_ctxs,:]
+            SDI_surr[:,:,s] = surr
+
     else:
-        Q_all_rotated = Q_all
-        P_all_rotated = P_all
-        R_all = 0; scale_R = 0
-        print('Not Procrustes alignment performed')
-    
-    return Q_all_rotated, P_all_rotated, R_all, scale_R
-
-def orthogonal_rotation_procrustes(Q_all, P_all,  plot=False, p=''):
-    if np.shape(Q_all)[2]>1:
-        Q_all_rotated = np.zeros(np.shape(Q_all))
-        Q_all_new = np.zeros(np.shape(Q_all))
-        Q_all_rotated[:,:,0] = Q_all[:,:,0]
-        R_all = np.zeros(np.shape(Q_all))
-        scale_R = np.zeros(np.shape(Q_all)[2])
-        Q_all[np.isnan(Q_all)]=0; Q_all[np.isinf(Q_all)]=0
-
-        for i in range(1, np.shape(Q_all)[2]):
-            R_all[:,:,i], _ = scipy.linalg.orthogonal_procrustes(Q_all[:,:,0], Q_all[:,:,i])
-            Q_all_rotated[:,:,i] = Q_all[:,:,i] @ R_all[:,:,i]    
-        ### take the average of the rotated eigenvectors
-        Q_mean_rotated = np.mean(Q_all_rotated,axis=2)
-        ###second round of Procrustes transformation
-        P_all_rotated = np.zeros((np.shape(Q_all)[0], np.shape(Q_all)[2]))
-        for i in range(1, np.shape(Q_all)[2]):
-            R, _ = scipy.linalg.orthogonal_procrustes(Q_mean_rotated, Q_all[:,:,i])
-            Q_all_rotated[:,:,i]  = Q_all[:,:,i] @ R
-            #eig_rotated = R@Q_all[:,:,i]@np.diag(P_all[:,i])
-            #P_all_rotated[:,i] = np.sqrt(np.sum(np.multiply(eig_rotated,eig_rotated),axis=0))
-            P_all_rotated[:,i] = P_all[:,i]
-
         
-            Q_mean_rotated = np.mean(Q_all_rotated,axis=2)
-            P_mean = np.mean(P_all,axis=1); P_mean_rotated = np.mean(P_all_rotated, axis=1)
+        with h5py.File(os.path.join(example_dir, 'PHI.mat'), 'r') as f:
+            tmp = f['PHI'][()]
+        #PHI =extract_ctx_ROIs(tmp)
+        PHI = tmp
+        nbSurr = np.shape(PHI)[2]
+
+        for s in np.arange(len(X_RS_allPat)):
+            for n in np.arange(19):
+                print('sub-%d, n%d'%(s,n))
+                X_RS = X_RS_allPat[s]['X_RS']
+                #idxs_tmp = np.concatenate((np.arange(0,57), np.arange(59,116)))
+                #X_RS = X_RS[idxs_tmp, :, :]
+                zX_RS = scipy.stats.zscore(X_RS, axis=None)
+                XrandS = np.zeros(np.shape(X_RS))
+                PHI_curr = np.squeeze(PHI[:,:,n])
+                for p in np.arange(np.shape(X_RS)[2]):
+                    zX_RS_curr = scipy.stats.zscore(zX_RS[:,:,p])
+                    XrandS[:,:,p] = scU@PHI_curr@np.transpose(scU)@zX_RS_curr
+                    #  X_hat=M'X, normally reconstructed signal would be Xrecon=M*X_hat=MM'X, instead of M, M*PHI is V with randomized signs
+                SD_hat, X_c, X_d, N_c, N_d, SDI = filter_signal_with_harmonics(scU, XrandS, Vlow, Vhigh)
+                SDI_surr[:,n,s]=np.mean(N_d,1)/np.mean(N_c,1);#(np.shape(SDI_surr))
+    return SDI_surr
 
 
-        if plot==True:
-            fig, ax = plt.subplots(2,2, figsize=(10,3))            
-            ax[0,0].imshow(Q_mean_rotated,  extent = [0,np.shape(Q_all)[2],0,np.shape(Q_all)[2]], aspect='auto', cmap='jet', vmin = -0.1,vmax=0.1)
-            ax[0,0].set_title('Average of rotated eigenvectors');  ax[0,0].set_aspect('equal')
-            cax1 = ax[1,0].imshow(np.mean(Q_all, axis=2),  extent = [0,np.shape(Q_all)[2],0,np.shape(Q_all)[2]], aspect='auto', cmap='jet', vmin = -0.1,vmax=0.1)
-            ax[1,0].set_title('Average of original eigenvectors'); ax[1,0].set_aspect('equal')
-            
-        A = Q_all[:,:,0].T; B = Q_all[:,:,1].T; A_cos = np.dot(A, B.T)
-        if plot==True:
-            ax[0,1].imshow(A_cos,cmap = 'seismic',vmin = -1,vmax=1)
-            ax[0,1].set_title('Cosine Similarity Before Rotation'); ax[0,1].set_xlabel('Subject 1 eigenvectors'), ax[0,1].set_ylabel('Subject 2 eigenvectors')
-        
-        A = Q_all_rotated[:,:,0].T; B = Q_all_rotated[:,:,1].T; A_cos = np.dot(A,B.T)
-        if plot==True:
-            ax[1,1].imshow(A_cos,cmap = 'seismic', vmin = -1,vmax=1); ax[1,1].set_title('Cosine Similarity After Rotation'); ax[1,1].set_xlabel('Subject 1 eigenvectors'); ax[1,1].set_ylabel('Subject 2 eigenvectors')        
-            fig.suptitle('%s'%p); plt.show(block=False)
-            plt.savefig('./public/static/images/RotationProcrustes%s.png'%p)
-    
+
+
+def compute_group_sdi(label, consensus, EucDist, lateralization,example_dir, output_dir, figures_dir,nbSurr=100, scale=2, surr_key=None):
+    """
+    Build GSP harmonics from a consensus SC matrix, estimate SDI per patient,
+    run surrogate-based significance testing, and save/plot the results.
+
+    Parameters
+    ----------
+    label : str
+        Short group name used in output filenames and figure labels
+        (e.g. 'HC', 'EP', 'IND').
+    consensus : ndarray (ROI, ROI)
+        Group consensus structural connectivity matrix.
+    EucDist : ndarray (ROI, ROI)
+        Euclidean distance matrix used to build the harmonics.
+    lateralization : {'LT', 'RT'}
+        Which TLE lateralization to keep for SDI estimation.
+    surr_key : str, optional
+        Filename stem for the cached surrogate SDI array.
+        Defaults to f'SDI_surr_{label}_{lateralization}'.
+
+    Returns
+    -------
+    surr_thresh : ndarray
+        Per-threshold surrogate significance results.
+    """
+    print(f"\nProcessing {label} {lateralization}...")
+
+    # Harmonics from the consensus matrix
+    P, Q, Ln, An = cons_normalized_lap(consensus, EucDist, plot=False)
+
+    # Project EEG onto the harmonics, estimate SDI + cutoff per patient
+    X_RS_allPat = load_EEG_example(example_dir)
+    ls_cutoff, ls_lat = [], []
+    SDI_tmp = np.zeros((118, len(X_RS_allPat)))
+    for p, patient in enumerate(X_RS_allPat):
+        X_RS = patient['X_RS']
+        ls_lat.append(patient['lat'][0])
+        PSD, NN, Vlow, Vhigh = get_cutoff_freq(Q, X_RS)
+        ls_cutoff.append(NN)
+        SDI_tmp[:, p], X_c_norm, X_d_norm, SD_hat = compute_SDI(X_RS, Q)
+    np.save(os.path.join(output_dir, f'cutoff_{label}_{lateralization}.npy'), ls_cutoff)
+
+    # Keep only patients with the requested lateralization
+    ls_lat = np.array(ls_lat)
+    lat_key = 'Rtle' if lateralization == 'RT' else 'Ltle'
+    idxs_lat = np.where(ls_lat == lat_key)[0]
+    SDI = SDI_tmp[:, idxs_lat]
+    np.save(os.path.join(output_dir, f'SDI_{label}_{lateralization}.npy'), SDI)
+
+    # Surrogate-based significance testing (cached to disk)
+    surr_key = surr_key or f'SDI_surr_{label}_{lateralization}'
+    surr_path = os.path.join(output_dir, f'{surr_key}.npy')
+    if os.path.exists(surr_path):
+        SDI_surr = np.load(surr_path)
+        print('Surrogate SDI already generated')
     else:
-        Q_all_rotated = Q_all
-        P_all_rotated = P_all
-        R_all = 0; scale_R = 0
-        print('Not Procrustes alignment performed')
-    
-    return Q_all_rotated, P_all_rotated, R_all, scale_R
+        SDI_surr = surrogate_sdi(Q, Vlow, Vhigh, example_dir, nbSurr=nbSurr, example=False)
+        np.save(surr_path, SDI_surr)
 
-def reconstruct_SC(MatMat, df, P, Q, k=None, plot=False, p=''):
-    Ln_group_recon = np.zeros(np.shape(MatMat))
-    MatMat_recon = np.zeros(np.shape(MatMat))
-    
-    for s, sub in enumerate(list(df['sub'])):
-        Qs = Q[:,:,s]
-        Ps = P[:,s]
-        
-        if np.any(np.isnan(Qs)) or np.any(np.isinf(Qs)):
-            print(f"NaN or Inf found in Q matrix slice {s}. Replacing with zeros.")
-            Qs = np.nan_to_num(Qs)
-        
-        if k is not None:
-            Qs = Qs[:, :k]  # Select the first k eigenvectors
-            Ps = Ps[:k]     # Select the first k eigenvalues
-        
-        try:
-            Q_pinv = np.linalg.pinv(Qs)
-        except np.linalg.LinAlgError:
-            print(f"SVD did not converge for slice {s}. Applying stronger regularization.")
-            Q_pinv = np.linalg.pinv(Qs + np.eye(Qs.shape[0]) * 1e-8)
-            if np.linalg.cond(Qs) > 1e10:  # Check the condition number
-                print(f"Condition number is too high for slice {s}. Further regularization.")
-                Q_pinv = np.linalg.pinv(Qs + np.eye(Qs.shape[0]) * 1e-6)
-        
-        Ln_group_recon[:,:,s] = Qs @ np.diag(Ps) @ Q_pinv
-        MatMat_recon[:,:,s] = np.diag(np.full(len(MatMat[:,:,s]), 1)) - Ln_group_recon[:,:,s]
-        MatMat_recon[:,:,s] = np.diag(np.diag(Ln_group_recon[:,:,s])) - Ln_group_recon[:,:,s]
-    
-    if plot:
-        fig, axs = plt.subplots(1, 3, figsize=(9, 4))
-        im1 = axs[0].imshow(MatMat_recon[:,:,0])
-        axs[0].set_title('Reconstructed Normalized SC - Subject 1')
-        im2 = axs[1].imshow(MatMat[:,:,0])
-        axs[1].set_title('Raw Normalized SC - Subject 1')
-        im3 = axs[2].scatter(MatMat[:,:,0], MatMat_recon[:,:,0])
-        axs[2].set_title('Pearson correlation - Subject 1'); axs[2].set_xlabel('SC'); axs[2].set_ylabel('Reconstructed SC');
-        fig.suptitle('%s' % p)
-        #plt.savefig('./public/static/images/reconstruct_SC_proc%s.png'%title)
-        plt.savefig('./public/static/images/reconstruct_SC_proc%s.png'%p)
-        plt.show(block=False)
+    surr_thresh, SDI_sig_subjectwise = select_significant_sdi(SDI, SDI_surr[:, :, idxs_lat])
+    np.save(os.path.join(output_dir, f'SDI_surr_thresh_{label}_{lateralization}.npy'),
+            surr_thresh, allow_pickle=True)
 
-    return MatMat_recon
+    # Count significant ROIs per threshold
+    nbROIs_sig = [len(np.where(np.abs(surr_thresh[t]['SDI_sig']))[0])
+                  for t in range(np.shape(surr_thresh)[0])]
+    np.save(os.path.join(output_dir, f'nbROIs_sig_{label}_{lateralization}.npy'), nbROIs_sig)
 
+    # Brain plots: uncorrected (thr=0) and manuscript threshold (thr=5)
+    plot_rois_pyvista_noaxes(surr_thresh[0]['mean_SDI'], scale, figures_dir, vmin=-2, vmax=2,label=f'Fig2_SDImean_{label}_{lateralization}')
+    plot_rois_pyvista_noaxes(surr_thresh[5]['mean_SDI'] * np.abs(surr_thresh[5]['SDI_sig']),scale, figures_dir, vmin=-2, vmax=2,label=f'Fig3_SDImean_thr5_{label}_{lateralization}')
 
-def reconstruct_SC_part(MatMat, nbEig, df, P, Q, plot=False):
-    Q = Q[:, :nbEig, :]; P = P[:nbEig,:]
-    Ln_group_recon = np.zeros(np.shape(MatMat)); MatMat_recon = np.zeros(np.shape(MatMat))
-    for s,sub in enumerate(list(df['sub'])):
-        #Ln_group_recon[:,:,s] = Q[:,:,s]@np.diag(P[:,s])@np.linalg.inv(Q[:,:,s])
-        Ln_group_recon[:,:,s] = Q[:,:,s]@np.diag(P[:,s])@np.linalg.pinv(Q[:,:,s]) ## use pseudo inverse because the matrix is not square anymore
-        MatMat_recon[:,:,s] = np.diag(np.full(len(MatMat[:,:,s]),1)) - Ln_group_recon[:,:,s]
-        MatMat_recon[:,:,s] = np.diag(np.diag(Ln_group_recon[:,:,s])) - Ln_group_recon[:,:,s]
-    if plot==True:
-        fig, axs = plt.subplots(1, 2, figsize=(9, 4))
-        im1 = axs[0].imshow(MatMat_recon[:,:,1]); axs[0].set_title(' Reconstructed Normalized SC - Subject 1')
-        im2 = axs[1].imshow(MatMat[:,:,1]); axs[1].set_title('Raw Normalized SC - Subject 1')
-    plt.show(block=False)       
+    return surr_thresh
 
-    return MatMat_recon
 
 def match_eigenvectors(A, B, metric='cosine'):
     """
@@ -486,92 +353,10 @@ def match_eigenvectors(A, B, metric='cosine'):
     return col_ind, cost[row_ind, col_ind].sum()
 
 
-def normalize_columns(X):
-    return X / np.linalg.norm(X, axis=0, keepdims=True)
-
-def cosine_similarity_matrix(H1, H2):
-    H1_norm = normalize_columns(H1)
-    H2_norm = normalize_columns(H2)
-    return H1_norm.T @ H2_norm  # shape: (k, k)
-
-def hungarian_aligned_cosine_similarity(H1, H2):
-    sim_matrix = cosine_similarity_matrix(H1, H2)
-    # Convert to cost for Hungarian (minimization)
-    cost_matrix = -sim_matrix
-    # Apply Hungarian algorithm
-    row_ind, col_ind = linear_sum_assignment(cost_matrix)
-    # Extract aligned similarities
-    aligned_similarities = sim_matrix[row_ind, col_ind]
-    # Create an aligned similarity matrix
-    aligned_sim_matrix = np.zeros_like(sim_matrix)
-    for i, j in zip(row_ind, col_ind):
-        aligned_sim_matrix[i, j] = sim_matrix[i, j]
-    return aligned_sim_matrix, aligned_similarities, (row_ind, col_ind)
-
-
-
-
-
-def orthogonal_rotation_procrustes(Q_all, P_all,  plot=False, p=''):
-    if np.shape(Q_all)[2]>1:
-        Q_all_rotated = np.zeros(np.shape(Q_all))
-        Q_all_new = np.zeros(np.shape(Q_all))
-        Q_all_rotated[:,:,0] = Q_all[:,:,0]
-        R_all = np.zeros(np.shape(Q_all))
-        scale_R = np.zeros(np.shape(Q_all)[2])
-        Q_all[np.isnan(Q_all)]=0; Q_all[np.isinf(Q_all)]=0
-
-        for i in range(1, np.shape(Q_all)[2]):
-            R_all[:,:,i], _ = scipy.linalg.orthogonal_procrustes(Q_all[:,:,0], Q_all[:,:,i])
-            Q_all_rotated[:,:,i] = Q_all[:,:,i] @ R_all[:,:,i]    
-        ### take the average of the rotated eigenvectors
-        Q_mean_rotated = np.mean(Q_all_rotated,axis=2)
-        ###second round of Procrustes transformation
-        P_all_rotated = np.zeros((np.shape(Q_all)[0], np.shape(Q_all)[2]))
-        for i in range(1, np.shape(Q_all)[2]):
-            R, _ = scipy.linalg.orthogonal_procrustes(Q_mean_rotated, Q_all[:,:,i])
-            Q_all_rotated[:,:,i]  = Q_all[:,:,i] @ R
-            #eig_rotated = R@Q_all[:,:,i]@np.diag(P_all[:,i])
-            #P_all_rotated[:,i] = np.sqrt(np.sum(np.multiply(eig_rotated,eig_rotated),axis=0))
-            P_all_rotated[:,i] = P_all[:,i]
-
-        
-            Q_mean_rotated = np.mean(Q_all_rotated,axis=2)
-            P_mean = np.mean(P_all,axis=1); P_mean_rotated = np.mean(P_all_rotated, axis=1)
-
-
-        if plot==True:
-            fig, ax = plt.subplots(2,2, figsize=(10,3))            
-            ax[0,0].imshow(Q_mean_rotated,  extent = [0,np.shape(Q_all)[2],0,np.shape(Q_all)[2]], aspect='auto', cmap='jet', vmin = -0.1,vmax=0.1)
-            ax[0,0].set_title('Average of rotated eigenvectors');  ax[0,0].set_aspect('equal')
-            cax1 = ax[1,0].imshow(np.mean(Q_all, axis=2),  extent = [0,np.shape(Q_all)[2],0,np.shape(Q_all)[2]], aspect='auto', cmap='jet', vmin = -0.1,vmax=0.1)
-            ax[1,0].set_title('Average of original eigenvectors'); ax[1,0].set_aspect('equal')
-            
-        A = Q_all[:,:,0].T; B = Q_all[:,:,1].T; A_cos = np.dot(A, B.T)
-        if plot==True:
-            ax[0,1].imshow(A_cos,cmap = 'seismic',vmin = -1,vmax=1)
-            ax[0,1].set_title('Cosine Similarity Before Rotation'); ax[0,1].set_xlabel('Subject 1 eigenvectors'), ax[0,1].set_ylabel('Subject 2 eigenvectors')
-        
-        A = Q_all_rotated[:,:,0].T; B = Q_all_rotated[:,:,1].T; A_cos = np.dot(A,B.T)
-        #if plot==True:
-        #    ax[1,1].imshow(A_cos,cmap = 'seismic', vmin = -1,vmax=1); ax[1,1].set_title('Cosine Similarity After Rotation'); ax[1,1].set_xlabel('Subject 1 eigenvectors'); ax[1,1].set_ylabel('Subject 2 eigenvectors')        
-        #    fig.suptitle('%s'%p); plt.show(block=False)
-        #    plt.savefig('./public/static/images/RotationProcrustes%s.png'%p)
-    
-    else:
-        Q_all_rotated = Q_all
-        P_all_rotated = P_all
-        R_all = 0; scale_R = 0
-        print('Not Procrustes alignment performed')
-    
-    return Q_all_rotated, P_all_rotated, R_all, scale_R
-
-
 def rotation_procrustes(Q_all, P_all,  plot=False, p=''):
     if np.shape(Q_all)[2]>1:
         Q_all_rotated = np.zeros(np.shape(Q_all))
         Q_all_new = np.zeros(np.shape(Q_all))
-        Q_all_norm = np.zeros(np.shape(Q_all))
         Q_all_rotated[:,:,0] = Q_all[:,:,0]
         R_all = np.zeros(np.shape(Q_all))
         scale_R = np.zeros(np.shape(Q_all)[2])
@@ -584,7 +369,7 @@ def rotation_procrustes(Q_all, P_all,  plot=False, p=''):
         ###second round of Procrustes transformation
         P_all_rotated = np.zeros((np.shape(Q_all)[0], np.shape(Q_all)[2]))
         for i in range(1, np.shape(Q_all)[2]):
-            Q_all_norm[:,:,i], Q_all_rotated[:,:,i], disparity = scipy.spatial.procrustes(Q_mean_rotated, Q_all[:,:,i])
+            Q_all[:,:,i], Q_all_rotated[:,:,i], disparity = scipy.spatial.procrustes(Q_mean_rotated, Q_all[:,:,i])
             P_all_rotated[:,i] = P_all[:,i]        
             Q_mean_rotated = np.mean(Q_all_rotated,axis=2)
             P_mean = np.mean(P_all,axis=1); P_mean_rotated = np.mean(P_all_rotated, axis=1)
@@ -596,7 +381,7 @@ def rotation_procrustes(Q_all, P_all,  plot=False, p=''):
             ax[0,0].set_title('Average of rotated eigenvectors');  ax[0,0].set_aspect('equal')
             cax1 = ax[1,0].imshow(np.mean(Q_all, axis=2),  extent = [0,np.shape(Q_all)[2],0,np.shape(Q_all)[2]], aspect='auto', cmap='jet', vmin = -0.1,vmax=0.1)
             ax[1,0].set_title('Average of original eigenvectors'); ax[1,0].set_aspect('equal')
-            
+  
         A = Q_all[:,:,0].T; B = Q_all[:,:,1].T; A_cos = np.dot(A, B.T)
         if plot==True:
             ax[0,1].imshow(A_cos,cmap = 'seismic',vmin = -1,vmax=1)
@@ -615,3 +400,84 @@ def rotation_procrustes(Q_all, P_all,  plot=False, p=''):
         print('Not Procrustes alignment performed')
     
     return Q_all_rotated, P_all_rotated, R_all, scale_R
+
+
+#### CACHES FUNCTION FOR FIG5
+################################
+
+# =====================================================
+# GLOBAL CACHE HELPERS
+# =====================================================
+def load_or_compute(path, compute_fn, compress=False):
+    if os.path.exists(path):
+        return np.load(path, allow_pickle=True)
+    result = compute_fn()
+    if compress:
+        np.savez_compressed(path, data=result)
+    else:
+        np.save(path, result)
+    return result
+
+def load_npz_dict(path):
+    data = np.load(path, allow_pickle=True)
+    return {k: data[k].tolist() for k in data}
+
+# ============================================================================
+# HELPERS
+# ============================================================================
+def align_all(Q_ref, Q):
+    Q_rot, _, _ = procrustes(Q_ref, Q)
+    U, _, Vt = scipy.linalg.svd(Q_rot, full_matrices=False)
+    Q_rot = U @ Vt
+
+    perm, _ = match_eigenvectors(Q_ref, Q)
+    Q_match = Q[:, perm]
+
+    return {"raw": Q, "rotated": Q_rot, "matched": Q_match}
+
+def harmonic_similarity(Q_ref, Q):
+    return np.abs(np.diag(Q_ref.T @ Q))
+
+# ============================================================================
+# CACHE WRAPPERS
+# ============================================================================
+def get_permutations(label, idxs, max_bin, nbPerm, OUTPUT_DIR):
+    path = os.path.join(OUTPUT_DIR, f"perms_{label}.npy")
+
+    def compute():
+        return np.array([
+            np.random.choice(idxs, max_bin, replace=False)
+            for _ in range(nbPerm)
+        ])
+    return load_or_compute(path, compute)
+
+def get_Q(label, bi, p, SC, perm_idxs, Euc, OUTPUT_DIR):
+    path = os.path.join(OUTPUT_DIR, f"Q_{label}_bin{bi}_perm{p}.npy")
+
+    def compute():
+        SC_sub = np.mean(SC[:, :, perm_idxs], axis=2)
+        _, Q, _, _ = cons_normalized_lap(SC_sub, Euc, plot=False)
+        return Q
+
+    return load_or_compute(path, compute)
+
+def get_alignments(label, bi, p, Q_ref, Q, OUTPUT_DIR):
+    path = os.path.join(OUTPUT_DIR, f"ALIGN_{label}_bin{bi}_perm{p}.npz")
+
+    if os.path.exists(path):
+        data = np.load(path)
+        return {"raw": data["raw"], "rotated": data["rotated"],"matched": data["matched"]}
+
+    Qs = align_all(Q_ref, Q)
+    np.savez(path,raw=Qs["raw"],rotated=Qs["rotated"],matched=Qs["matched"])
+
+    return Qs
+
+def get_SDI(label, bi, p, method_key, Qm, X_RS_allPat, OUTPUT_DIR):
+    fname = f"SDI_{label}_bin{bi}_perm{p}_{method_key}.npy"
+    path = os.path.join(OUTPUT_DIR, fname)
+
+    def compute():
+        return np.column_stack([compute_SDI(pat['X_RS'], Qm)[0] for pat in X_RS_allPat])
+
+    return load_or_compute(path, compute)
